@@ -1,0 +1,244 @@
+<div class="modal fade" id="upgradeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+
+      <div class="modal-header" style="padding: 18px 22px 14px;">
+        <div>
+          <h5 class="modal-title" style="font-size: 16px; font-weight: 700;">
+            Choose your plan
+          </h5>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
+            All plans include access to the same fast AI models. Pro unlocks more tokens and smarter routing.
+          </div>
+        </div>
+        <button
+          type="button"
+          class="modal-close-btn"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        >
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body" style="padding: 6px 22px 22px;">
+
+        <div class="plans-grid">
+
+          <!-- ── FREE PLAN ──────────────────────────────── -->
+          <div class="plan-card" [class.is-pro]="false">
+            @if (!isPro()) {
+              <div class="current-badge">Current plan</div>
+            }
+
+            <div class="plan-name">Free</div>
+            <div class="plan-price">₹0</div>
+            <div class="plan-price-note">No credit card required</div>
+
+            <ul class="feature-list">
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-check"></i>
+                <span><strong>30,000</strong> tokens / day</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-check"></i>
+                <span><strong>500,000</strong> tokens / month</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-check"></i>
+                <span>Max <strong>500</strong> tokens per response</span>
+              </li>
+              <hr class="feature-divider">
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-check"></i>
+                <span>
+                  <strong>Cheap tier</strong> models
+                  <span style="display:block; font-size:11px; color:var(--text-muted); margin-top:2px;">
+                    Mistral · Gemini Flash · DeepSeek Chat
+                  </span>
+                </span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-dash fi fi-cross"></i>
+                <span>Mid-tier models (blocked)</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-dash fi fi-cross"></i>
+                <span>Premium models (blocked)</span>
+              </li>
+              <hr class="feature-divider">
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-check"></i>
+                <span><strong>Low</strong> intelligence only</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-dash fi fi-cross"></i>
+                <span>Medium / High intelligence</span>
+              </li>
+              <hr class="feature-divider">
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-check"></i>
+                <span>~40 queries / day</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-check"></i>
+                <span>~660 queries / month</span>
+              </li>
+            </ul>
+
+            <!-- no upgrade for free -->
+            <button class="btn-upgrade current-plan" [disabled]="!isPro()" (click)="!isPro() ? null : onUpgrade()">
+              @if (!isPro()) {
+                <i class="bi bi-check2-circle"></i>
+                Current plan
+              } @else {
+                Downgrade to Free
+              }
+            </button>
+          </div>
+
+          <!-- ── PRO PLAN ──────────────────────────────── -->
+          <div class="plan-card is-pro">
+            @if (isPro()) {
+              <div class="current-badge">Current plan</div>
+            }
+
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:2px;">
+              <div class="plan-name">Pro</div>
+              <span class="chip pro"><i class="bi bi-stars"></i> Most popular</span>
+            </div>
+            <div class="plan-price">₹599</div>
+            <div class="plan-price-note">+ 18% GST = ₹706.82 / month</div>
+
+            <ul class="feature-list">
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span><strong>150,000</strong> tokens / day</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span><strong>4,000,000</strong> tokens / month</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span>Max <strong>2,000</strong> tokens per response</span>
+              </li>
+              <hr class="feature-divider">
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span>
+                  <strong>Cheap tier</strong> — unlimited within daily cap
+                  <span style="display:block; font-size:11px; color:var(--text-muted); margin-top:2px;">
+                    Mistral · Gemini Flash · DeepSeek Chat
+                  </span>
+                </span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span>
+                  <strong>Mid tier</strong> — 800,000 tokens / month
+                  <span style="display:block; font-size:11px; color:var(--text-muted); margin-top:2px;">
+                    Claude Haiku · DeepSeek R1 · GPT-4.1 Mini · ~530 queries
+                  </span>
+                </span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span>
+                  <strong>Premium tier</strong> — 150,000 tokens / month
+                  <span style="display:block; font-size:11px; color:var(--text-muted); margin-top:2px;">
+                    Claude Sonnet · ~50 premium queries
+                  </span>
+                </span>
+              </li>
+              <hr class="feature-divider">
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span><strong>Low + Medium</strong> intelligence</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span>Smart auto-downgrade protects your quota</span>
+              </li>
+              <hr class="feature-divider">
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span>~200 cheap queries / day</span>
+              </li>
+              <li class="feature-row">
+                <i class="bi bi-check2 fi fi-star"></i>
+                <span>~530 mid + ~50 premium queries / month</span>
+              </li>
+            </ul>
+
+            @if (!isPro()) {
+              <button class="btn-upgrade" (click)="onUpgrade()" [disabled]="paying()">
+                <i class="bi" [class.bi-arrow-up-circle-fill]="!paying()" [class.bi-hourglass-split]="paying()"></i>
+                {{ paying() ? 'Opening PhonePe...' : 'Upgrade to Pro' }}
+              </button>
+            } @else {
+              <button class="btn-upgrade current-plan" disabled>
+                <i class="bi bi-check2-circle"></i>
+                You're on Pro
+              </button>
+            }
+          </div>
+
+        </div>
+
+        <!-- ── GST note + auto-downgrade explanation ──── -->
+        <div class="gst-note">
+          ₹599 + 18% GST · Billed monthly · Cancel anytime
+          <br>
+          <span style="color: var(--text-muted); opacity: 0.7;">
+            When monthly budgets run low, the router automatically falls to cheaper models — your queries keep working.
+          </span>
+        </div>
+
+        <!-- ── Comparison bar ─────────────────────────── -->
+        <div style="margin-top: 20px; padding: 16px; background: var(--bg-elev); border-radius: 14px; border: 1px solid var(--border);">
+          <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 12px;">
+            Token allowance comparison
+          </div>
+          <div class="token-bar-wrap">
+            <div class="token-bar-label">
+              <span>Free — daily</span>
+              <span>30,000</span>
+            </div>
+            <div class="token-bar">
+              <div class="token-bar-fill" style="width: 20%;"></div>
+            </div>
+          </div>
+          <div class="token-bar-wrap">
+            <div class="token-bar-label">
+              <span>Pro — daily</span>
+              <span>150,000</span>
+            </div>
+            <div class="token-bar">
+              <div class="token-bar-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+          <div class="token-bar-wrap" style="margin-top: 10px;">
+            <div class="token-bar-label">
+              <span>Free — monthly</span>
+              <span>500,000</span>
+            </div>
+            <div class="token-bar">
+              <div class="token-bar-fill" style="width: 12.5%;"></div>
+            </div>
+          </div>
+          <div class="token-bar-wrap">
+            <div class="token-bar-label">
+              <span>Pro — monthly</span>
+              <span>4,000,000</span>
+            </div>
+            <div class="token-bar">
+              <div class="token-bar-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

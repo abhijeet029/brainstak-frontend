@@ -1,0 +1,104 @@
+    <div class="composer-wrap">
+      <form class="composer" (submit)="onSubmit($event)">
+        <button type="button" class="tool-btn" title="More actions">
+          <i class="bi bi-plus-lg"></i>
+        </button>
+
+        @if (voiceState() === 'listening') {
+          <!-- ── Recording: live waveform + cancel/confirm ── -->
+          <canvas #waveCanvas class="wave-canvas"></canvas>
+          <div class="voice-controls">
+            <button type="button" class="voice-btn voice-cancel" (click)="cancelVoice()" title="Cancel">
+              <i class="bi bi-x-lg"></i>
+            </button>
+            <button type="button" class="voice-btn voice-confirm" (click)="confirmVoice()" title="Done">
+              <i class="bi bi-check-lg"></i>
+            </button>
+          </div>
+        } @else if (voiceState() === 'transcribing') {
+          <!-- ── Transcribing: spinner while Groq processes ── -->
+          <div class="transcribing-indicator">
+            <span class="transcribing-dots">
+              <span></span><span></span><span></span>
+            </span>
+            <span class="transcribing-label">Transcribing…</span>
+          </div>
+        } @else {
+          <!-- ── Normal composer UI ── -->
+          <textarea
+            #ta
+            class="composer-input"
+            [(ngModel)]="text"
+            name="msg"
+            [placeholder]="placeholder"
+            rows="1"
+            [disabled]="disabled"
+            (input)="autoResize(); onDraftInput()"
+            (keydown)="onKeyDown($event)"
+          ></textarea>
+          <div class="composer-actions">
+            <div class="intelligence-menu" (click)="$event.stopPropagation()">
+              <button
+                type="button"
+                class="intelligence-trigger"
+                [disabled]="disabled"
+                [attr.aria-expanded]="menuOpen"
+                (click)="toggleIntelligenceMenu($event)"
+              >
+                <span>{{ selectedIntelligenceOption().label }}</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              @if (menuOpen) {
+                <div class="intelligence-panel">
+                  <div class="intelligence-title">Intelligence</div>
+                  @for (option of intelligenceOptions; track option.value) {
+                    <button
+                      type="button"
+                      class="intelligence-option"
+                      [class.active]="option.value === intelligence"
+                      [class.disabled]="!option.enabled"
+                      [attr.aria-disabled]="!option.enabled"
+                      (click)="chooseIntelligence($event, option)"
+                    >
+                      <span class="option-main">
+                        <span>{{ option.label }}</span>
+                        @if (option.models) {
+                          <span class="option-models">{{ option.models }}</span>
+                        }
+                      </span>
+                      @if (option.value === intelligence) {
+                        <i class="bi bi-check2"></i>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            @if (voiceState() !== 'unsupported') {
+              <button
+                type="button"
+                class="mic-btn"
+                [disabled]="disabled"
+                title="Voice input"
+                (click)="toggleVoice()"
+              >
+                <i class="bi bi-mic"></i>
+              </button>
+            }
+            <button
+              type="submit"
+              class="send-btn"
+              [disabled]="!canSend()"
+              title="Send"
+            >
+              <i class="bi" [class.bi-arrow-up]="!disabled" [class.bi-stop-fill]="disabled"></i>
+            </button>
+          </div>
+        }
+      </form>
+      @if (showDisclaimer) {
+        <div class="composer-disclaimer">
+          BrainStak picks the best model for your query. Responses may be inaccurate.
+        </div>
+      }
+    </div>

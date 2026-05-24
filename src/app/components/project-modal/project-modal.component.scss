@@ -1,0 +1,100 @@
+.project-subtitle { margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+.empty-state, .empty-list { color: var(--text-muted); font-size: 13px; padding: 12px; }
+.connection-bar {
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--bg-deep);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rename-bar {
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--bg-deep);
+}
+.rename-fields {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+.rename-error {
+  margin-top: 8px;
+  color: #fca5a5;
+  font-size: 12px;
+}
+.connection-bar.connected {
+  border-color: rgba(34, 197, 94, 0.35);
+}
+.connection-bar.readonly {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+.connection-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.connection-subtitle { margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+.scan-bar {
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--bg-deep);
+}
+.scan-fields {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.scan-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.scan-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.scan-btn { height: 40px; white-space: nowrap; }
+.scan-result {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.project-grid { display: grid; grid-template-columns: 220px 1fr; gap: 16px; min-height: 420px; }
+.file-list {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  background: var(--bg-deep);
+  overflow: auto;
+}
+.file-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 4px;
+}
+.file-item:hover, .file-item.active { background: var(--bg-elev); }
+.file-path { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.editor-pane { display: flex; flex-direction: column; }
+.file-content {
+  min-height: 320px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.editor-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 900px) {
+  .connection-bar { flex-direction: column; align-items: stretch; }
+  .rename-fields { grid-template-columns: 1fr; }
+  .scan-fields { grid-template-columns: 1fr; }
+  .project-grid { grid-template-columns: 1fr; }
+}

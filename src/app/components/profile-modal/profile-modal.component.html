@@ -1,0 +1,55 @@
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Profile</h5>
+            <button type="button" class="modal-close-btn" data-bs-dismiss="modal" aria-label="Close">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form [formGroup]="form" (ngSubmit)="save()">
+              <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" [value]="user()?.email" disabled>
+                <div class="form-hint">Linked via Google. Can't be changed.</div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="name"
+                  required
+                  maxlength="60"
+                >
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Mobile number</label>
+                <div class="input-group">
+                  <span class="input-group-text">+91</span>
+                  <input
+                    type="tel"
+                    class="form-control"
+                    formControlName="phoneLocal"
+                    placeholder="98765 43210"
+                    pattern="[0-9 ]{10,12}"
+                    maxlength="12"
+                  >
+                </div>
+                <div class="form-hint">Optional. Used for security alerts only.</div>
+              </div>
+              @if (error()) {
+                <div class="text-danger" style="font-size: 13px;">{{ error() }}</div>
+              }
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : 'Save changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>

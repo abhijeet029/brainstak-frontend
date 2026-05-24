@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="#111827"/>
+  <!-- Chat bubble body -->
+  <rect x="4" y="4" width="22" height="18" rx="4" stroke="white" stroke-width="2" fill="none"/>
+  <!-- Tail -->
+  <path d="M7 22 L5 28 L13 24" stroke="white" stroke-width="2" stroke-linejoin="round" fill="none"/>
+  <!-- Dot 1 -->
+  <circle cx="9" cy="11" r="1.5" fill="white"/>
+  <!-- Dot 2 -->
+  <circle cx="9" cy="16" r="1.5" fill="white"/>
+  <!-- Line 1 -->
+  <line x1="13" y1="11" x2="21" y2="11" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Line 2 -->
+  <line x1="13" y1="16" x2="21" y2="16" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

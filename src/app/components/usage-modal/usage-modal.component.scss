@@ -1,0 +1,174 @@
+.usage-bar {
+  height: 4px; background: var(--border);
+  border-radius: 2px; overflow: hidden;
+}
+.usage-bar-fill {
+  height: 100%; background: var(--accent-grad);
+  transition: width 0.3s;
+}
+.usage-meta { margin-top: 8px; color: var(--text-muted); font-size: 11px; }
+.plan-card {
+  background: var(--bg-elev); border-radius: 14px;
+  padding: 16px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px;
+}
+.plan-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.plan-copy { font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.45; }
+.plan-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.stat-card {
+  background: var(--bg-elev); border-radius: 14px; padding: 14px;
+  font-size: 13px; color: var(--text-secondary);
+}
+.stat-card .v { color: var(--text-primary); font-weight: 500; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.stats-grid .stat-card { min-height: 84px; }
+.stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.stat-strong { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-top: 6px; }
+.stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.usage-note {
+  margin-top: 12px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.quota-list {
+  display: grid;
+  gap: 10px;
+}
+.quota-row {
+  background: var(--bg-elev);
+  border-radius: 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent 18%);
+}
+.quota-row-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.quota-row-meta {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.rag-card {
+  background: var(--bg-elev);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent 18%);
+  border-radius: 14px;
+  padding: 14px;
+}
+.rag-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+.rag-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.rag-copy {
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.rag-status {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+}
+.rag-status.available {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border) 66%);
+  color: var(--text-primary);
+}
+.rag-steps {
+  display: grid;
+  gap: 8px;
+  margin-top: 13px;
+}
+.rag-step {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+.rag-step span {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+.rag-step p {
+  margin: 0;
+}
+.rag-plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+.rag-plan {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.rag-plan.enabled {
+  color: var(--text-secondary);
+}
+.rag-plan.enabled i {
+  color: var(--accent);
+}
+.rag-plan.current {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border) 58%);
+  color: var(--text-primary);
+}
+
+@media (max-width: 540px) {
+  .rag-head {
+    flex-direction: column;
+  }
+  .rag-plans {
+    grid-template-columns: 1fr;
+  }
+}

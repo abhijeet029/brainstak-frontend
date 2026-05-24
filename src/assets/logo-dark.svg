@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none">
+  <!-- Chat bubble icon -->
+  <rect x="2" y="2" width="52" height="44" rx="10" ry="10" stroke="white" stroke-width="3" fill="none"/>
+  <!-- Tail at bottom-left -->
+  <path d="M8 46 L4 58 L18 50" stroke="white" stroke-width="3" stroke-linejoin="round" fill="none"/>
+  <!-- Dot 1 -->
+  <circle cx="16" cy="18" r="2.8" fill="white"/>
+  <!-- Dot 2 -->
+  <circle cx="16" cy="30" r="2.8" fill="white"/>
+  <!-- Line 1 -->
+  <line x1="24" y1="18" x2="44" y2="18" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <!-- Line 2 -->
+  <line x1="24" y1="30" x2="44" y2="30" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <!-- TheBrainStak text -->
+  <text x="68" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="28" font-weight="700" fill="white" letter-spacing="-0.5">TheBrainStak</text>
+</svg>

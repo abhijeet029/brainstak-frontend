@@ -1,0 +1,131 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.login-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 4vw, 64px);
+  background:
+    radial-gradient(ellipse at 30% 20%, var(--login-glow-a), transparent 50%),
+    radial-gradient(ellipse at 75% 80%, var(--login-glow-b), transparent 50%),
+    var(--bg-deep);
+}
+
+/* Dark mode glow colours */
+:host { --login-glow-a: rgba(245,169,127,0.07); --login-glow-b: rgba(99,102,241,0.07); }
+:root[data-theme='light'] :host { --login-glow-a: rgba(17,24,39,0.04); --login-glow-b: rgba(37,99,235,0.05); }
+
+.login-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: clamp(46px, 5vw, 72px) clamp(32px, 4vw, 56px) clamp(38px, 4vw, 52px);
+  max-width: min(520px, calc(100vw - 40px));
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.18);
+}
+
+/* Logo */
+.brand-logo {
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 34px;
+}
+.brand-logo svg { height: clamp(56px, 5vw, 76px); width: auto; color: var(--text-primary); }
+
+/* Divider under logo */
+.logo-divider {
+  width: 54px; height: 2px;
+  background: var(--border);
+  margin: 0 auto 30px;
+  border-radius: 2px;
+}
+
+.title {
+  font-size: clamp(28px, 2.4vw, 36px); font-weight: 700; margin: 0 0 12px; letter-spacing: 0;
+  color: var(--text-primary);
+}
+.subtitle {
+  color: var(--text-secondary);
+  font-size: clamp(15px, 1.1vw, 17px);
+  margin: 0 0 38px;
+  line-height: 1.55;
+}
+
+.g-btn-wrap {
+  display: flex;
+  justify-content: center;
+  min-height: 58px;
+  margin-bottom: 8px;
+}
+
+:host ::ng-deep .g-btn-wrap iframe {
+  transform: scale(1.12);
+  transform-origin: center;
+}
+
+.err {
+  margin-top: 14px; padding: 10px 14px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  color: #fca5a5; font-size: 13px;
+  border-radius: 10px; text-align: left;
+}
+:root[data-theme='light'] .err {
+  background: rgba(220, 38, 38, 0.06);
+  border-color: rgba(220, 38, 38, 0.2);
+  color: #b91c1c;
+}
+
+.legal {
+  color: var(--text-muted); font-size: 12px; margin: 24px 0 0; line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .login-shell {
+    padding: 20px;
+  }
+
+  .login-card {
+    border-radius: 20px;
+    padding: 38px 24px 32px;
+    max-width: 100%;
+  }
+
+  .brand-logo {
+    margin-bottom: 28px;
+  }
+
+  .brand-logo svg {
+    height: 52px;
+  }
+
+  .logo-divider {
+    width: 42px;
+    margin-bottom: 24px;
+  }
+
+  .title {
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    margin-bottom: 30px;
+  }
+
+  .g-btn-wrap {
+    min-height: 50px;
+  }
+
+  :host ::ng-deep .g-btn-wrap iframe {
+    transform: scale(1.04);
+  }
+}

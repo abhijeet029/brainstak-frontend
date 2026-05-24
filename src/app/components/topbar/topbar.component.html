@@ -1,0 +1,146 @@
+    <header class="topbar">
+      <div class="topbar-left">
+        <button type="button" class="mobile-menu-btn" title="Open sidebar" (click)="menuClick.emit()">
+          <i class="bi bi-list"></i>
+        </button>
+        @if (showProjectSwitcher()) {
+          <div class="dropdown">
+            <button
+              type="button"
+              class="project-switcher active"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              [title]="'Project: ' + activeProjectName()"
+            >
+              <i class="bi ps-icon bi-folder2-open"></i>
+              <span class="ps-label">{{ switcherLabel() }}</span>
+              <i class="bi bi-chevron-down ps-caret"></i>
+            </button>
+            <ul class="dropdown-menu" style="min-width: 260px;">
+              @if (projects().length > 0) {
+                <li class="menu-section">Projects</li>
+                @for (project of projects(); track project.id) {
+                  <li>
+                    <a class="dropdown-item" href="javascript:void(0)" (click)="selectProject(project.id)">
+                      <span class="menu-row">
+                        <span class="check">
+                          <i class="bi" [class.bi-check2]="project.id === activeProjectId()"></i>
+                        </span>
+                        <i class="bi bi-folder2 me-1"></i>
+                        {{ project.name }}
+                      </span>
+                    </a>
+                  </li>
+                }
+              }
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#projectModal">
+                  <i class="bi bi-files me-2"></i>View project files
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+                  <i class="bi bi-folder-plus me-2"></i>New project…
+                </a>
+              </li>
+            </ul>
+          </div>
+        }
+      </div>
+
+      <div class="topbar-actions">
+        <!-- <button
+          class="token-pill"
+          [class.warn]="pillClass() === 'warn'"
+          [class.danger]="pillClass() === 'danger'"
+          data-bs-toggle="modal"
+          data-bs-target="#usageModal"
+        >
+          <span class="dot"></span>
+          <span>{{ planLabel() }} · {{ (today()?.remaining ?? 0) | number }} left today</span>
+        </button> -->
+
+        <button
+          type="button"
+          class="temporary-chat-btn"
+          [class.active]="temporaryMode()"
+          [title]="temporaryMode() ? 'Temporary chat is on' : 'Start temporary chat'"
+          (click)="toggleTemporaryMode()"
+        >
+          <i class="bi bi-incognito"></i>
+          @if (temporaryMode()) {
+            <span>Temporary</span>
+          }
+        </button>
+
+        <div class="dropdown">
+          <button class="avatar-btn" data-bs-toggle="dropdown" aria-expanded="false">
+            {{ initial() }}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li class="px-3 py-2">
+              <div style="font-size: 13px; font-weight: 600;">{{ user()?.name || 'User' }}</div>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                {{ user()?.email }}
+              </div>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#profileModal">
+                <i class="bi bi-person me-2"></i>Profile
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#usageModal">
+                <i class="bi bi-bar-chart me-2"></i>Usage
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modelPriorityModal">
+                <i class="bi bi-list-ol me-2"></i>Model priority
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="javascript:void(0)" (click)="theme.toggleTheme()">
+                <i class="bi me-2" [class.bi-sun]="theme.theme() === 'dark'" [class.bi-moon-stars]="theme.theme() === 'light'"></i>
+                {{ theme.theme() === 'dark' ? 'Light theme' : 'Dark theme' }}
+              </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            @if (planLabel() === 'Free') {
+              <li>
+                <a
+                  class="dropdown-item upgrade-item"
+                  href="javascript:void(0)"
+                  data-bs-toggle="modal"
+                  data-bs-target="#upgradeModal"
+                >
+                  <i class="bi bi-arrow-up-circle-fill me-2" style="color: var(--accent);"></i>
+                  Upgrade to Pro
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+            } @else {
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="javascript:void(0)"
+                  data-bs-toggle="modal"
+                  data-bs-target="#upgradeModal"
+                >
+                  <i class="bi bi-patch-check me-2" style="color: var(--accent);"></i>
+                  Manage plan
+                </a>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+            }
+            <li>
+              <a class="dropdown-item" href="javascript:void(0)" (click)="onLogout()">
+                <i class="bi bi-box-arrow-right me-2"></i>Sign out
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>

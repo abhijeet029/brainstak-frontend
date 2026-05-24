@@ -1,0 +1,118 @@
+<div class="modal fade" id="newProjectModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">New project</h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+          (click)="reset()"
+        ></button>
+      </div>
+
+      <div class="modal-body">
+        @if (!fsSupported) {
+          <div class="warn">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Folder access requires a Chromium-based browser (Chrome, Edge, Brave, Arc).
+            Other browsers can still chat without project context.
+          </div>
+        }
+
+        @if (step() === 'choose') {
+          <div class="project-choice-list">
+            <button class="project-choice" type="button" (click)="onStartScratch()">
+              <span class="choice-icon"><i class="bi bi-plus-lg"></i></span>
+              <span>Start from scratch</span>
+            </button>
+
+            <button class="project-choice" type="button" (click)="onUseExisting()" [disabled]="!fsSupported">
+              <span class="choice-icon"><i class="bi bi-folder2-open"></i></span>
+              <span>Use an existing folder</span>
+            </button>
+          </div>
+        }
+
+        @if (step() === 'name') {
+          <form class="name-step" (submit)="$event.preventDefault(); onNameContinue()">
+            <div class="name-title">Name your project</div>
+            <div class="name-copy">
+              Choose a short name you can recognize later.
+            </div>
+            <input
+              class="form-control project-name-input"
+              type="text"
+              name="projectName"
+              [(ngModel)]="projectNameDraft"
+              maxlength="120"
+              autocomplete="off"
+              placeholder="Project name"
+            >
+          </form>
+        }
+
+        @if (step() === 'permission') {
+          <div class="permission-card">
+            <div class="permission-title">
+              <i class="bi bi-folder2-open me-2"></i>Choose your project folder
+            </div>
+            <div class="permission-copy">
+              Click <strong>Continue</strong> below. This modal will close and your browser's
+              folder picker will open — choose the folder you want Hub to use.
+            </div>
+            <ul class="permission-points">
+              <li>
+                After you pick a folder, Chrome will show a short
+                <strong>"Allow this site to edit files?"</strong> confirmation.
+                That's a browser security step — click <strong>Allow</strong>.
+              </li>
+              <li>Hub reads and indexes your source files locally. Nothing is uploaded elsewhere.</li>
+              <li>You can disconnect the folder at any time from the project settings.</li>
+            </ul>
+          </div>
+        }
+
+
+        @if (error()) {
+          <div class="err">{{ error() }}</div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        @if (step() === 'choose') {
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="reset()">
+            Cancel
+          </button>
+        } @else if (step() === 'name') {
+          <button type="button" class="btn btn-secondary" (click)="back()">Back</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="onNameContinue()"
+            [disabled]="isCreating() || !projectNameDraft.trim()"
+          >
+            @if (isCreating()) {
+              <span class="spinner-border spinner-border-sm me-2" role="status"></span>Creating...
+            } @else if (pendingFlow() === 'folder') {
+              Continue
+            } @else {
+              Create project
+            }
+          </button>
+        } @else if (step() === 'permission') {
+          <button type="button" class="btn btn-secondary" (click)="back()">Back</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="onPermissionContinue()"
+            [disabled]="!fsSupported"
+          >
+            Continue to browser permission
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</div>

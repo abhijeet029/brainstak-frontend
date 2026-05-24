@@ -1,0 +1,318 @@
+    <div class="message" [class.user]="isUser()" [class.assistant]="!isUser()">
+      <div class="message-content">
+        @if (isUser() && editing()) {
+          <form class="edit-box" (submit)="$event.preventDefault(); submitEdit()">
+            <textarea
+              class="edit-textarea"
+              name="editMessage"
+              [(ngModel)]="editDraft"
+              (keydown.escape)="cancelEdit()"
+              autofocus
+            ></textarea>
+            <div class="edit-actions">
+              <button type="button" class="edit-cancel" (click)="cancelEdit()">Cancel</button>
+              <button type="submit" class="edit-submit" [disabled]="!editDraft.trim()">Send</button>
+            </div>
+          </form>
+        } @else {
+          @if (!isUser()) {
+            <div class="message-header">
+            <button type="button" class="response-copy-btn" (click)="copyResponse()">
+              <i class="bi" [class.bi-copy]="!responseCopied()" [class.bi-check2]="responseCopied()"></i>
+              <span>{{ responseCopied() ? 'Copied response' : 'Copy response' }}</span>
+            </button>
+            </div>
+          }
+        @if (!isUser() && usedContext.length > 0) {
+          <div class="rag-context" [class.expanded]="contextExpanded()">
+            <button type="button" class="rag-toggle" (click)="contextExpanded.set(!contextExpanded())">
+              <i class="bi bi-database-fill-check"></i>
+              <span>Answered using {{ usedContext.length }} project file{{ usedContext.length === 1 ? '' : 's' }}</span>
+              <i class="bi" [class.bi-chevron-down]="!contextExpanded()" [class.bi-chevron-up]="contextExpanded()"></i>
+            </button>
+            @if (contextExpanded()) {
+              <ul class="rag-list">
+                @for (chunk of usedContext; track chunk.path + chunk.startLine) {
+                  <li>
+                    <code>{{ chunk.path }}</code>
+                    <span class="rag-lines">L{{ chunk.startLine }}–{{ chunk.endLine }}</span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+        <div class="message-body">
+          @for (block of visibleBlocks(); track $index) {
+            @if (block.type === 'text') {
+              <div class="text-block" [innerHTML]="block.html"></div>
+            } @else {
+              <section class="code-block" [class.file-block]="!!block.path">
+                <header class="code-toolbar">
+                  @if (block.path) {
+                    <div class="code-path-wrap">
+                      <span class="code-path"><i class="bi bi-file-earmark-code"></i>&nbsp;{{ block.path }}</span>
+                    </div>
+                  } @else {
+                    <span class="code-language">{{ block.language || 'code' }}</span>
+                  }
+                  <button type="button" class="copy-btn" (click)="copyCode(block.code, $index)">
+                    <i class="bi" [class.bi-copy]="copiedIndex() !== $index" [class.bi-check2]="copiedIndex() === $index"></i>
+                    <span>{{ copiedIndex() === $index ? 'Copied' : 'Copy' }}</span>
+                  </button>
+                </header>
+                <pre><code [innerHTML]="block.highlightedHtml"></code></pre>
+              </section>
+            }
+          }
+        </div>
+        @if (isUser()) {
+          <div class="message-header">
+            <button type="button" class="message-action-btn" title="Edit and resend" (click)="startEdit()">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </div>
+        }
+        @if (llmLabel(); as label) {
+          <div class="llm-meta-row">
+            <div class="llm-meta">
+              <i class="bi bi-cpu"></i>
+              <span>Answered by <strong>{{ label }}</strong></span>
+            </div>
+            @if (preferChip) {
+              <button
+                type="button"
+                class="prefer-model-chip"
+                (click)="preferModel.emit(preferChip)"
+                title="Pin this model for all further replies in this chat"
+              >
+                <i class="bi bi-pin-fill"></i>
+                Prefer {{ preferChip.modelLabel }} for next responses
+              </button>
+            }
+          </div>
+        }
+        @if (alternateModels().length) {
+          <div class="model-checks" aria-label="Check response with another model">
+            @for (model of alternateModels(); track model.id) {
+              <button
+                type="button"
+                class="model-check-chip"
+                [class.checking]="isCheckingModel(model.id)"
+                [disabled]="isCheckDisabled(model.id)"
+                (click)="checkModel.emit({ assistantMessageId: message.id, model: model.id, modelLabel: model.label, intelligence: responseIntelligence() })"
+              >
+                @if (isCheckingModel(model.id)) {
+                  <span class="chip-spinner" aria-hidden="true"></span>
+                  Checking with {{ model.label }}...
+                } @else {
+                  Check response from {{ model.label }}
+                }
+              </button>
+            }
+          </div>
+        }
+        @if (tokenMeta) {
+          <div class="token-meta">{{ tokenMeta }}</div>
+        }
+        @if (downgradeNote) {
+          <div class="downgrade-note">
+            <i class="bi bi-sliders"></i>
+            <span>{{ downgradeNote }}</span>
+          </div>
+        }
+        @if (hasProposedChanges()) {
+          <div class="suggested-changes">
+            @if (!changesPanelOpen()) {
+              <button type="button" class="changes-toggle" (click)="changesPanelOpen.set(true)">
+                <i class="bi bi-layout-sidebar-inset-reverse"></i>
+                <span>View proposed changes</span>
+                <span class="changes-toggle-count">{{ proposedChanges.length }}</span>
+              </button>
+            }
+
+            @if (changesPanelOpen()) {
+              <div class="changes-drawer-backdrop" (click)="changesPanelOpen.set(false)"></div>
+              <aside class="changes-drawer" aria-label="Proposed changes">
+                <div class="changes-drawer-head">
+                  <div class="changes-drawer-title-wrap">
+                    <div class="changes-drawer-title">
+                      <i class="bi bi-file-diff"></i>
+                      <span>Proposed changes</span>
+                    </div>
+                    <div class="changes-drawer-sub">
+                      Review file edits before applying them to the project.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="changes-drawer-close"
+                    title="Close proposed changes"
+                    (click)="changesPanelOpen.set(false)"
+                  >
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+
+                <div class="changes-drawer-body">
+                  <div class="sc-header">
+                    <div class="sc-title">
+                <i class="bi bi-file-diff"></i>
+                Suggested Changes
+                <span class="sc-title-count">{{ proposedChanges.length }}</span>
+                    </div>
+                    @if (pendingChanges().length > 1) {
+                      <button type="button" class="sc-apply-all" (click)="onApplyAll()">
+                        <i class="bi bi-check2-all"></i>
+                        Apply All ({{ pendingChanges().length }})
+                      </button>
+                    }
+                  </div>
+
+                  <!-- Per-file cards -->
+                  @for (change of proposedChanges; track change.path) {
+                    @let status = getFileStatus(change.path);
+                    @let isNew = change.originalContent === null;
+                    @let diff = getDiff(change);
+                    @let hasApplyError = !!change.applyError;
+                    <div class="sc-file-card"
+                         [class.applied]="status === 'applied'"
+                         [class.dismissed]="status === 'dismissed'"
+                         [class.has-error]="hasApplyError">
+                      <!-- File header (click to expand/collapse) -->
+                      <div class="sc-file-header" (click)="toggleFileExpand(change.path)">
+                        <i class="bi bi-file-earmark-code sc-file-icon"></i>
+                        <span class="sc-file-path" [title]="change.path">{{ change.path }}</span>
+
+                        @if (hasApplyError) {
+                          <span class="sc-file-badge" style="background:#7f1d1d;color:#fecaca;">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>Cannot apply
+                          </span>
+                        } @else if (status === 'applied') {
+                          <span class="sc-file-badge applied-badge"><i class="bi bi-check2 me-1"></i>Applied</span>
+                        } @else if (status === 'dismissed') {
+                          <span class="sc-file-badge dismissed-badge">Dismissed</span>
+                        } @else if (isNew) {
+                          <span class="sc-file-badge new-file">New file</span>
+                        } @else {
+                          <span class="sc-file-badge modified">Modified</span>
+                        }
+
+                        <!-- Action buttons (only when pending and applyable) -->
+                        @if (status === 'pending' && !hasApplyError) {
+                          <div class="sc-file-actions" (click)="$event.stopPropagation()">
+                            <button type="button" class="sc-btn apply" (click)="onApplySingle(change)">
+                              <i class="bi bi-check2"></i> Apply
+                            </button>
+                            <button type="button" class="sc-btn dismiss" (click)="onDismiss(change.path)">
+                              Dismiss
+                            </button>
+                          </div>
+                        }
+
+                        <!-- When apply failed, only Dismiss is offered -->
+                        @if (status === 'pending' && hasApplyError) {
+                          <div class="sc-file-actions" (click)="$event.stopPropagation()">
+                            <button type="button" class="sc-btn dismiss" (click)="onDismiss(change.path)">
+                              Dismiss
+                            </button>
+                          </div>
+                        }
+
+                        <!-- Undo button shown for applied files -->
+                        @if (status === 'applied') {
+                          <div class="sc-file-actions" (click)="$event.stopPropagation()">
+                            <button type="button" class="sc-btn dismiss" (click)="onUndoSingle(change.path)" title="Revert this file to its previous state">
+                              <i class="bi bi-arrow-counterclockwise"></i> Undo
+                            </button>
+                          </div>
+                        }
+
+                        <i class="bi bi-chevron-right sc-expand-caret" [class.open]="isFileExpanded(change.path)"></i>
+                      </div>
+
+                      <!-- Diff / new file content (collapsible) -->
+                      @if (isFileExpanded(change.path)) {
+                        @if (hasApplyError) {
+                          <!-- Apply failed — explain why and show what the AI tried to do -->
+                          <div class="sc-apply-error" style="padding: 12px 16px; background: #2a1010; border-top: 1px solid #7f1d1d; color: #fca5a5;">
+                            <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;">
+                              <i class="bi bi-exclamation-triangle-fill" style="font-size:18px;margin-top:2px;"></i>
+                              <div>
+                                <div style="font-weight:600;color:#fecaca;">Cannot apply this edit automatically</div>
+                                <div style="font-size:12px;margin-top:4px;color:#fca5a5;">{{ change.applyError }}</div>
+                                <div style="font-size:12px;margin-top:8px;color:#d4d4d8;">
+                                  This usually happens when the file path is wrong or the AI's SEARCH text doesn't match the current file content. Try asking the AI to rewrite using the full path, or copy the proposed change manually.
+                                </div>
+                              </div>
+                            </div>
+
+                            @if (change.editBlocks && change.editBlocks.length) {
+                              <details style="margin-top:10px;">
+                                <summary style="cursor:pointer;color:#fcd34d;font-size:12px;">View AI's proposed edit ({{ change.editBlocks.length }} block{{ change.editBlocks.length === 1 ? '' : 's' }})</summary>
+                                <div style="margin-top:8px;">
+                                  @for (block of change.editBlocks; track $index) {
+                                    <div style="margin-bottom:12px;">
+                                      <div style="font-size:11px;color:#a3a3a3;margin-bottom:4px;">SEARCH:</div>
+                                      <pre style="background:#1a0808;padding:8px;border-radius:4px;color:#fecaca;font-size:12px;white-space:pre-wrap;">{{ block.search || '(empty — would create new file)' }}</pre>
+                                      <div style="font-size:11px;color:#a3a3a3;margin-top:6px;margin-bottom:4px;">REPLACE:</div>
+                                      <pre style="background:#0c1f0c;padding:8px;border-radius:4px;color:#86efac;font-size:12px;white-space:pre-wrap;">{{ block.replace }}</pre>
+                                    </div>
+                                  }
+                                </div>
+                              </details>
+                            }
+                          </div>
+                        } @else if (isNew) {
+                          <!-- New file: just show content with green tint -->
+                          <pre class="sc-new-file-content">{{ change.content }}</pre>
+                        } @else if (diff.length > 0) {
+                          <!-- Modified file: unified diff -->
+                          <div class="sc-diff">
+                            <table>
+                              <tbody>
+                                @for (line of diff; track $index) {
+                                  @if (line.text === '⋯') {
+                                    <tr class="ellipsis">
+                                      <td colspan="4" style="text-align:center; padding: 3px 0;">⋯ unchanged lines ⋯</td>
+                                    </tr>
+                                  } @else {
+                                    <tr [class]="line.kind">
+                                      <td class="ln" [class.add]="line.kind === 'add'" [class.remove]="line.kind === 'remove'">
+                                        {{ line.oldNum ?? '' }}
+                                      </td>
+                                      <td class="ln" [class.add]="line.kind === 'add'" [class.remove]="line.kind === 'remove'">
+                                        {{ line.newNum ?? '' }}
+                                      </td>
+                                      <td class="marker" [class.add]="line.kind === 'add'" [class.remove]="line.kind === 'remove'">
+                                        {{ line.kind === 'add' ? '+' : line.kind === 'remove' ? '-' : ' ' }}
+                                      </td>
+                                      <td class="line-text" [class.add]="line.kind === 'add'" [class.remove]="line.kind === 'remove'">{{ line.text }}</td>
+                                    </tr>
+                                  }
+                                }
+                              </tbody>
+                            </table>
+                          </div>
+                        } @else {
+                          <!-- Modified but no original to diff (shouldn't happen often) -->
+                          <pre class="sc-new-file-content">{{ change.content }}</pre>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              </aside>
+            }
+          </div>
+        }
+        @if (hasFollowUps()) {
+          <div class="followups">
+            @for (item of followUps; track item) {
+              <button type="button" class="followup-chip" (click)="useFollowUp.emit(item)">{{ item }}</button>
+            }
+          </div>
+        }
+        }
+      </div>
+    </div>

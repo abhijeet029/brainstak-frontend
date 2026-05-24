@@ -1,0 +1,104 @@
+<div class="modal fade" id="modelPriorityModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg model-priority-dialog">
+    <div class="modal-content model-priority-modal">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Model priority</h5>
+          <p class="priority-kicker mb-0">
+            Current plan: <strong>{{ planName() }}</strong>
+          </p>
+        </div>
+        <button type="button" class="modal-close-btn" data-bs-dismiss="modal" aria-label="Close">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="priority-note">
+          <i class="bi bi-info-circle"></i>
+          <span>
+            Queries will use the order below for your active plan. If you do not save a custom order,
+            Hub uses the owner default priority.
+          </span>
+        </div>
+
+        @if (hiddenLevelText(); as hidden) {
+          <div class="locked-note">
+            {{ hidden }} intelligence unlocks when your plan allows it.
+          </div>
+        }
+
+        @if (error()) {
+          <div class="priority-alert error">{{ error() }}</div>
+        }
+
+        @if (loading()) {
+          <div class="priority-loading">
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            Loading model priority...
+          </div>
+        } @else {
+          <div class="priority-groups">
+            @for (group of visiblePriorities(); track group.tier) {
+              <section class="priority-card" [attr.aria-label]="group.label + ' model priority'">
+                <div class="priority-card-head">
+                  <div>
+                    <div class="priority-label">{{ group.label }} intelligence</div>
+                    <div class="priority-status">
+                      {{ group.custom ? 'Using your custom priority' : 'Using owner default priority' }}
+                    </div>
+                  </div>
+                  <div class="priority-actions">
+                    <button
+                      type="button"
+                      class="priority-reset"
+                      [disabled]="saving() === group.tier || !group.custom"
+                      (click)="resetModelPriority(group.tier)"
+                    >Reset</button>
+                    <button
+                      type="button"
+                      class="priority-save"
+                      [disabled]="saving() === group.tier"
+                      (click)="saveModelPriority(group.tier)"
+                    >{{ saving() === group.tier ? 'Saving...' : 'Save' }}</button>
+                  </div>
+                </div>
+
+                <div class="priority-list">
+                  @for (model of group.modelOrder; track model.id; let i = $index; let first = $first; let last = $last) {
+                    <div
+                      class="priority-row"
+                      draggable="true"
+                      [class.dragging]="isDragging(group.tier, i)"
+                      (dragstart)="onDragStart($event, group.tier, i)"
+                      (dragover)="onDragOver($event)"
+                      (drop)="onDrop($event, group.tier, i)"
+                      (dragend)="onDragEnd()"
+                    >
+                      <span class="drag-handle" aria-hidden="true">
+                        <i class="bi bi-grip-vertical"></i>
+                      </span>
+                      <span class="priority-rank">{{ i + 1 }}</span>
+                      <span class="priority-model">
+                        <span class="priority-model-name">{{ model.label }}</span>
+                        <span class="priority-provider">{{ model.provider }}</span>
+                      </span>
+                      <span class="priority-move">
+                        <button type="button" [disabled]="first" (click)="moveModel(group.tier, i, -1)" aria-label="Move up">
+                          <i class="bi bi-chevron-up"></i>
+                        </button>
+                        <button type="button" [disabled]="last" (click)="moveModel(group.tier, i, 1)" aria-label="Move down">
+                          <i class="bi bi-chevron-down"></i>
+                        </button>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </section>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

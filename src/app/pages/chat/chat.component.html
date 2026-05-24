@@ -1,0 +1,233 @@
+    <div class="app-shell">
+      <app-sidebar
+        #sidebar
+        [open]="sidebarOpen()"
+        [collapsed]="!sidebarVisible() && !sidebarOpen()"
+        (newChat)="onNewChat()"
+        (newChatInProject)="onProjectNewChat($event)"
+        (projectSelected)="onProjectSelected($event)"
+        (selected)="onSelectChat($event)"
+        (closeRequested)="sidebarOpen.set(false)"
+        (toggleCollapsed)="onToggleSidebar()"
+      ></app-sidebar>
+      @if (sidebarOpen()) {
+        <div class="sidebar-backdrop" (click)="sidebarOpen.set(false)"></div>
+      }
+
+      <main class="main">
+        <app-topbar
+          (projectChanged)="onProjectSelected($event)"
+          (menuClick)="onOpenSidebar()"
+          (temporaryModeChange)="onTemporaryModeChange($event)"
+        ></app-topbar>
+
+        <div class="chat-area" #scrollArea>
+          @if (projectHomeProject(); as project) {
+            <div class="project-home">
+              <div class="project-title">
+                <i class="bi bi-folder2-open"></i>
+                <span>{{ project.name }}</span>
+              </div>
+
+              <app-composer
+                #composer
+                [disabled]="chatSvc.sending()"
+                [placeholder]="'New chat in ' + project.name"
+                [intelligence]="selectedIntelligence()"
+                [intelligenceOptions]="intelligenceOptions()"
+                [showDisclaimer]="false"
+                (intelligenceChange)="onIntelligenceChanged($event)"
+                (send)="onSend($event)"
+              ></app-composer>
+
+              <div class="project-tabs" role="tablist" aria-label="Project views">
+                <button
+                  type="button"
+                  class="project-tab"
+                  [class.active]="projectTab() === 'chats'"
+                  (click)="setProjectTab('chats')"
+                >Chats</button>
+                <button
+                  type="button"
+                  class="project-tab"
+                  [class.active]="projectTab() === 'sources'"
+                  (click)="setProjectTab('sources')"
+                >Sources</button>
+              </div>
+
+              @if (projectTab() === 'chats') {
+                <div class="project-list">
+                  @if (projectChats().length === 0) {
+                    <div class="project-empty">No chats yet. Start one above and it will stay attached to this project.</div>
+                  } @else {
+                    @for (chat of projectChats(); track chat.id) {
+                      <button
+                        type="button"
+                        class="project-list-row"
+                        (click)="onSelectChat(chat.id)"
+                      >
+                        <span>
+                          <span class="project-list-title">{{ chat.title || 'New chat' }}</span>
+                          <span class="project-list-sub">{{ formatTokenCount(chat.totalTokens ?? 0) }}</span>
+                        </span>
+                        <span class="project-list-date">
+                          <span>{{ formatProjectDate(chat.lastActive) }}</span>
+                        </span>
+                      </button>
+                    }
+                  }
+                </div>
+              } @else {
+                <div class="project-list">
+                  @if (projectFiles().length === 0) {
+                    <div class="project-empty">No sources added yet. Add or import project files to use them as context.</div>
+                  } @else {
+                    @for (file of projectFiles(); track file.id) {
+                      <div class="project-list-row">
+                        <span>
+                          <span class="project-list-title">{{ file.path }}</span>
+                          <span class="project-list-sub">{{ file.language || 'source file' }}</span>
+                        </span>
+                        <span class="project-list-date">{{ formatProjectDate(file.updatedAt) }}</span>
+                      </div>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          } @else if (newChatVisible()) {
+            <section
+              class="new-chat-screen"
+              [class.temporary-chat-screen]="chatSvc.temporaryMode()"
+              [attr.aria-label]="chatSvc.temporaryMode() ? 'Temporary chat' : 'New chat'"
+            >
+              <div class="new-chat-panel">
+                <h2>{{ chatSvc.temporaryMode() ? 'Temporary Chat' : "What's on your mind today?" }}</h2>
+                @if (chatSvc.temporaryMode()) {
+                  <div class="temporary-hint">This chat won't appear in your chat history and will be deleted once you refresh the page.</div>
+                }
+                <app-composer
+                  #composer
+                  [disabled]="chatSvc.sending()"
+                  [intelligence]="selectedIntelligence()"
+                  [intelligenceOptions]="intelligenceOptions()"
+                  [showDisclaimer]="false"
+                  (intelligenceChange)="onIntelligenceChanged($event)"
+                  (send)="onSend($event)"
+                ></app-composer>
+                <div class="new-chat-actions" aria-label="Prompt shortcuts">
+                  <button type="button" (click)="onSuggestion('Create an image of ')">
+                    <i class="bi bi-image"></i>
+                    <span>Create an image</span>
+                  </button>
+                  <button type="button" (click)="onSuggestion('Write or edit ')">
+                    <i class="bi bi-pencil"></i>
+                    <span>Write or edit</span>
+                  </button>
+                  <button type="button" (click)="onSuggestion('Look something up about ')">
+                    <i class="bi bi-globe2"></i>
+                    <span>Look something up</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+          } @else {
+            <div class="chat-inner">
+              @for (m of messages(); track m.id) {
+                <app-message
+                  [message]="m"
+                  [userInitial]="userInitial()"
+                  [followUps]="chatSvc.getFollowUps(m.id)"
+                  [downgradeNote]="chatSvc.getDowngradeNote(m.id)"
+                  [tokenMeta]="chatSvc.getTokenMeta(m.id)"
+                  [replyIntelligence]="chatSvc.getReplyIntelligence(m.id)"
+                  [checkingModel]="checkingModelFor(m.id)"
+                  [preferChip]="checkResponseModelFor(m.id)"
+                  [usedContext]="chatSvc.getUsedContext(m.id)"
+                  [proposedChanges]="chatSvc.getProposedChanges(m.id)"
+                  (useFollowUp)="onSuggestion($event)"
+                  (applyChange)="onApplyChange($event)"
+                  (applyChanges)="onApplyChanges($event)"
+                  (undoChange)="onUndoChange($event)"
+                  (editResend)="onEditResend($event)"
+                  (checkModel)="onCheckModel($event)"
+                  (preferModel)="onPreferModel($event)"
+                ></app-message>
+              }
+
+              @if (pendingPermission(); as perm) {
+                <div class="message assistant permission-card-msg">
+                  <div class="message-content">
+                    <div class="perm-card">
+                      <div class="perm-icon-wrap">
+                        <i class="bi bi-folder2-open"></i>
+                      </div>
+                      <div class="perm-body">
+                        <div class="perm-title">Folder access needed</div>
+                        <div class="perm-text">
+                          To write these changes into <strong>{{ perm.projectName }}</strong>, Hub needs
+                          write access to your local folder. Your browser will ask you to confirm.
+                        </div>
+                        <div class="perm-actions">
+                          <button type="button" class="perm-allow" (click)="onGrantPermission()">
+                            <i class="bi bi-unlock-fill"></i>
+                            Allow folder access
+                          </button>
+                          <button type="button" class="perm-dismiss" (click)="onDismissPermission()">
+                            Not now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              @if (chatSvc.sending() && !waitingForReply()) {
+                <!-- optimistic user msg already inserted, typing indicator handled below -->
+              }
+              @if (waitingForReply()) {
+                <div class="message assistant">
+                  <div class="message-content">
+                    <div class="message-body">
+                      <span class="typing">
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        @if (!projectHomeVisible() && !newChatVisible()) {
+          @if (preferredModel(); as pref) {
+            <div class="pinned-model-banner">
+              <i class="bi bi-pin-fill"></i>
+              <span>Preferring <strong>{{ pref.modelLabel }}</strong> for this chat</span>
+              <button type="button" class="pinned-model-clear" (click)="clearPreferredModel()" title="Clear preference">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          }
+          <app-composer
+            #composer
+            [disabled]="chatSvc.sending()"
+            [intelligence]="selectedIntelligence()"
+            [intelligenceOptions]="intelligenceOptions()"
+            (intelligenceChange)="onIntelligenceChanged($event)"
+            (send)="onSend($event)"
+          ></app-composer>
+        }
+      </main>
+    </div>
+
+    <app-profile-modal></app-profile-modal>
+    <app-model-priority-modal></app-model-priority-modal>
+    <app-new-project-modal (projectCreated)="onProjectCreated($event)"></app-new-project-modal>
+    <app-project-modal></app-project-modal>
+    <app-usage-modal></app-usage-modal>
+    <app-upgrade-modal></app-upgrade-modal>

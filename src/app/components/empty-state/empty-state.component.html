@@ -1,0 +1,22 @@
+    <div class="empty-state">
+      <!-- <span class="ctx-pill" [class.in-project]="!!projectName">
+        <i class="bi" [class.bi-folder2-open]="!!projectName" [class.bi-chat]="!projectName"></i>
+        {{ contextLabel() }}
+      </span> -->
+      <div class="empty-greeting">Hello, {{ name || 'there' }}</div>
+      <div class="empty-sub">
+        @if (projectName) {
+          What would you like to change in <strong>{{ projectName }}</strong>?
+        } @else {
+          What can I help you build today?
+        }
+      </div>
+      <div class="suggestions">
+        @for (s of suggestions(); track s.title) {
+          <button class="suggestion-chip" (click)="useSuggestion.emit(s.prompt)">
+            <div class="suggestion-chip-title">{{ s.title }}</div>
+            <div class="suggestion-chip-sub">{{ s.sub }}</div>
+          </button>
+        }
+      </div>
+    </div>

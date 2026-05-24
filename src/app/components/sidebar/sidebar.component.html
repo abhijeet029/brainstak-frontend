@@ -1,0 +1,467 @@
+    <aside class="sidebar" [class.open]="open" [class.collapsed]="collapsed">
+      @if (collapsed) {
+        <div class="rail">
+          <button type="button" class="rail-btn rail-collapse" (click)="onRailMenuClick($event)" title="Expand sidebar">
+            <i class="bi bi-layout-sidebar-inset"></i>
+          </button>
+          <svg class="rail-logo" viewBox="0 0 36 40" xmlns="http://www.w3.org/2000/svg" fill="none" aria-label="TheBrainStak">
+            <rect x="3" y="3" width="27" height="23" rx="6" stroke="currentColor" stroke-width="2.2"/>
+            <path d="M6.5 26 L4.5 35 L13 30" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+            <circle cx="10.5" cy="12" r="1.8" fill="currentColor"/>
+            <circle cx="10.5" cy="19" r="1.8" fill="currentColor"/>
+            <line x1="15.5" y1="12" x2="25" y2="12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="15.5" y1="19" x2="25" y2="19" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+
+          <div class="rail-actions">
+            <button type="button" class="rail-btn" (click)="onRailNewChat($event)" title="New chat">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <button type="button" class="rail-btn" (click)="onRailSearch($event)" title="Search chats">
+              <i class="bi bi-search"></i>
+            </button>
+            <button type="button" class="rail-btn" (click)="onRailMenuClick($event)" title="Chats">
+              <i class="bi bi-chat"></i>
+            </button>
+          </div>
+
+          <div class="rail-spacer"></div>
+
+          <button
+            type="button"
+            class="rail-plan"
+            data-bs-toggle="modal"
+            data-bs-target="#usageModal"
+            title="Current plan: {{ planName() }}. View usage."
+          >
+            <span class="rail-plan-name">{{ planName() }}</span>
+            <span class="rail-plan-dot"></span>
+          </button>
+        </div>
+      } @else {
+      <div class="sidebar-header">
+        <div class="logo">
+          <!-- Inline SVG — no asset loading, theme-reactive via CSS currentColor -->
+          <svg viewBox="0 0 170 40" xmlns="http://www.w3.org/2000/svg" fill="none" aria-label="TheBrainStak">
+            <!-- Chat bubble icon -->
+            <rect x="1.5" y="1.5" width="30" height="25" rx="6" stroke="currentColor" stroke-width="2"/>
+            <path d="M5 26.5 L3 34 L11 29.5" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="9"  cy="11" r="1.8" fill="currentColor"/>
+            <circle cx="9"  cy="18" r="1.8" fill="currentColor"/>
+            <line x1="14" y1="11" x2="26" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <line x1="14" y1="18" x2="26" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <!-- Wordmark: TheBrainStak -->
+            <text x="38" y="25"
+              font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"
+              font-size="17" font-weight="700" fill="currentColor" letter-spacing="-0.3">TheBrainStak</text>
+          </svg>
+        </div>
+        <button class="new-chat-icon-btn" (click)="toggleCollapsed.emit()" title="Collapse sidebar">
+          <i class="bi bi-layout-sidebar-inset"></i>
+        </button>
+      </div>
+
+      <button class="new-chat-btn" (click)="onNewChat()">
+        <i class="bi bi-pencil-square"></i>
+        <span>New chat</span>
+      </button>
+
+      <div class="search-wrap">
+        <button type="button" class="search-trigger" (click)="openSearch()">
+          <i class="bi bi-search"></i>
+          <span>Search chats</span>
+        </button>
+      </div>
+
+      <div class="sidebar-body">
+        <section class="section">
+          <button type="button" class="section-header" (click)="toggleSection('projects')">
+            <span class="section-label">
+              <span class="section-title">Projects</span>
+            </span>
+            <i class="bi bi-chevron-right section-caret" [class.open]="isSectionOpen('projects')"></i>
+          </button>
+
+          @if (isSectionOpen('projects')) {
+            <div class="section-items">
+              <button
+                class="project-create-btn"
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#newProjectModal"
+              >
+                <i class="bi bi-folder-plus"></i>
+                <span>New project</span>
+              </button>
+              @if (projects().length === 0) {
+                <!-- <div class="section-empty">No projects yet</div> -->
+              } @else {
+                @for (project of projects(); track project.id) {
+                  <div>
+                    <!-- Project row -->
+                    <div
+                      class="project-item"
+                      [class.active]="project.id === activeProjectId()"
+                      [title]="project.name"
+                      (contextmenu)="onProjectContextMenu($event, project.id, project.name)"
+                    >
+                      <button
+                        type="button"
+                        class="project-caret"
+                        [class.open]="isProjectExpanded(project.id)"
+                        (click)="onProjectToggle($event, project.id)"
+                        [title]="isProjectExpanded(project.id) ? 'Collapse project' : 'Expand project'"
+                      >
+                        <i class="bi bi-chevron-right"></i>
+                      </button>
+                      <button type="button" class="project-main" (click)="onProjectSelect(project.id)">
+                        <i class="bi bi-folder2"></i>
+                        <span>{{ project.name }}</span>
+                      </button>
+                      <!-- New chat in project -->
+                      <!-- <button
+                        type="button"
+                        class="project-action-btn"
+                        title="New chat in {{ project.name }}"
+                        (click)="onProjectNewChat($event, project.id)"
+                      >
+                        <i class="bi bi-pencil-square"></i>
+                      </button> -->
+                      <!-- Delete project -->
+                      <button
+                        type="button"
+                        class="project-action-btn"
+                        title="Project options"
+                        (click)="openProjectMenu($event, project.id, project.name)"
+                      >
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+
+                    </div>
+
+                    <!-- Chats nested under this project -->
+                    @if (isProjectExpanded(project.id)) {
+                      <div class="project-chats">
+                        @let projectChats = chatsByProject().get(project.id) ?? [];
+                        @if (projectChats.length === 0) {
+                          <!-- <div class="project-no-chats">No chats yet — click <i class="bi bi-pencil-square"></i> to start</div> -->
+                        } @else {
+                          @for (chat of projectChats; track chat.id) {
+                            <div class="chat-row">
+                              <div
+                                class="chat-item project-chat"
+                                [class.active]="chat.id === activeId()"
+                                (click)="onSelect(chat.id)"
+                                [title]="chat.title || 'New chat'"
+                              >
+                                <span class="chat-title">{{ chat.title || 'New chat' }}</span>
+                                <span class="chat-token-meta">{{ tokenLabel(chat) }}</span>
+                              </div>
+                              <button
+                                type="button"
+                                class="chat-delete"
+                                title="Delete chat"
+                                (click)="onDeleteChat($event, chat.id, chat.title || 'New chat')"
+                              ><i class="bi bi-trash3"></i></button>
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          }
+        </section>
+
+        <section class="section">
+          <button type="button" class="section-header" (click)="toggleSection('recents')">
+            <span class="section-label">
+              <span class="section-title">Recents</span>
+            </span>
+            <i class="bi bi-chevron-right section-caret" [class.open]="isSectionOpen('recents')"></i>
+          </button>
+
+          @if (isSectionOpen('recents')) {
+            <div class="section-items">
+              @if (recentChats().length === 0) {
+                <div class="section-empty">No chats yet</div>
+              } @else {
+                @for (chat of recentChats(); track chat.id) {
+                  <div class="chat-row">
+                    <div
+                      class="chat-item"
+                      [class.active]="chat.id === activeId()"
+                      (click)="onSelect(chat.id)"
+                      [title]="(getProjectName(chat) ? '[' + getProjectName(chat) + '] ' : '') + (chat.title || 'New chat')"
+                    >
+                      @if (getProjectName(chat)) {
+                        <!-- <span class="chat-project-badge">{{ getProjectName(chat) }}</span> -->
+                      }
+                      <span class="chat-title">{{ chat.title || 'New chat' }}</span>
+                      <span class="chat-token-meta">{{ tokenLabel(chat) }}</span>
+                    </div>
+                    <button
+                      type="button"
+                      class="chat-delete"
+                      title="Delete chat"
+                      (click)="onDeleteChat($event, chat.id, chat.title || 'New chat')"
+                    >
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          }
+        </section>
+      </div>
+
+      <div class="sidebar-footer">
+        <div
+          class="usage-card"
+          role="button"
+          data-bs-toggle="modal"
+          data-bs-target="#usageModal"
+        >
+          <div class="usage-card-label">
+            <span>Current plan · <span class="usage-card-plan-label">{{ planName() }}</span></span>
+            <span>{{ today()?.pct ?? 0 }}%</span>
+          </div>
+          <div class="usage-bar">
+            <div class="usage-bar-fill" [style.width.%]="today()?.pct ?? 0"></div>
+          </div>
+          <div class="usage-meta">
+            {{ (today()?.tokens ?? 0) | number }} /
+            {{ (today()?.cap ?? 0) | number }} used
+          </div>
+        </div>
+      </div>
+      }
+    </aside>
+
+    @if (projectMenu(); as menu) {
+      <div
+        class="project-context-menu"
+        [style.top.px]="menu.top"
+        [style.left.px]="menu.left"
+        (click)="$event.stopPropagation()"
+      >
+        <button
+          type="button"
+          class="project-menu-item"
+          (click)="onProjectMenuRename(menu.projectId, menu.title)"
+        >
+          <i class="bi bi-pencil"></i>
+          <span>Rename project</span>
+        </button>
+        <!-- <button
+          type="button"
+          class="project-menu-item"
+          data-bs-toggle="modal"
+          data-bs-target="#projectModal"
+          (click)="onProjectMenuOpen(menu.projectId)"
+        >
+          <i class="bi bi-files"></i>
+          <span>View project files</span>
+        </button>
+        <button
+          type="button"
+          class="project-menu-item"
+          (click)="onProjectMenuConnect(menu.projectId)"
+        >
+          <i class="bi bi-folder2-open"></i>
+          <span>Connect/Reconnect folder</span>
+        </button>
+        <button
+          type="button"
+          class="project-menu-item"
+          (click)="onArchiveProjectChats(menu.projectId, menu.title)"
+        >
+          <i class="bi bi-archive"></i>
+          <span>Archive project chats</span>
+        </button> -->
+        <div class="project-menu-separator"></div>
+        <button
+          type="button"
+          class="project-menu-item danger"
+          (click)="onDeleteProject($event, menu.projectId, menu.title)"
+        >
+          <i class="bi bi-x-lg"></i>
+          <span>Remove project</span>
+        </button>
+      </div>
+    }
+
+    @if (deleteDialog(); as dialog) {
+      <div class="confirm-backdrop" (click)="cancelDelete()">
+        <div class="confirm-dialog" (click)="$event.stopPropagation()">
+          <div class="confirm-head">
+            <div class="confirm-title">Delete thread?</div>
+            <button type="button" class="confirm-close" title="Close" (click)="cancelDelete()">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="confirm-copy">
+            This will permanently delete <strong>{{ dialog.title }}</strong> and its messages.
+          </div>
+          <div class="confirm-actions">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="cancelDelete()">Cancel</button>
+            <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete()">Delete</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (searchOpen()) {
+      <div class="search-backdrop" (click)="closeSearch()">
+        <div class="search-modal" (click)="$event.stopPropagation()">
+          <div class="search-modal-head">
+            <input
+              #searchInput
+              class="search-modal-input"
+              type="text"
+              [ngModel]="search()"
+              (ngModelChange)="onSearchInput($event)"
+              placeholder="Search chats..."
+              autocomplete="off"
+            >
+            <button type="button" class="search-close" (click)="closeSearch()" title="Close search">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="search-results">
+            <button type="button" class="search-new" (click)="onNewChat()">
+              <i class="bi bi-pencil-square"></i>
+              <span>New chat</span>
+            </button>
+
+            @if (searchLoading()) {
+              <div class="search-empty">Searching...</div>
+            } @else if (searchDisplayResults().length === 0) {
+              <div class="search-empty">No chats found</div>
+            } @else {
+              @if (todaySearchResults().length > 0) {
+                <div class="search-group">Today</div>
+                @for (chat of todaySearchResults(); track chat.id) {
+                  <button type="button" class="search-result" (click)="onSelect(chat.id)">
+                    <i class="bi bi-chat search-result-icon"></i>
+                      <span>
+                        <span class="search-result-title">{{ chat.title || 'New chat' }}</span>
+                        <span class="search-result-sub">{{ tokenLabel(chat) }}</span>
+                      </span>
+                  </button>
+                }
+              }
+
+              @if (previousSearchResults().length > 0) {
+                <div class="search-group">Previous 7 Days</div>
+                @for (chat of previousSearchResults(); track chat.id) {
+                  <button type="button" class="search-result" (click)="onSelect(chat.id)">
+                    <i class="bi bi-chat search-result-icon"></i>
+                      <span>
+                        <span class="search-result-title">{{ chat.title || 'New chat' }}</span>
+                        <span class="search-result-sub">{{ tokenLabel(chat) }}</span>
+                      </span>
+                  </button>
+                }
+              }
+            }
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (deleteProjectDialog(); as dialog) {
+      <div class="confirm-backdrop" (click)="cancelProjectDelete()">
+        <div class="confirm-dialog" (click)="$event.stopPropagation()">
+          <div class="confirm-head">
+            <div class="confirm-title">Remove project from memory?</div>
+            <button type="button" class="confirm-close" title="Close" (click)="cancelProjectDelete()">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="confirm-copy">
+            <strong>{{ dialog.title }}</strong> will disappear from the project list and future project context,
+            but its files are not hard-deleted.
+          </div>
+          <div class="confirm-actions">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="cancelProjectDelete()">Cancel</button>
+            <button type="button" class="btn btn-danger btn-sm" (click)="confirmProjectDelete()">Remove</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (archiveChatsDialog(); as dialog) {
+      <div class="confirm-backdrop" (click)="cancelArchiveChats()">
+        <div class="confirm-dialog" (click)="$event.stopPropagation()">
+          <div class="confirm-head">
+            <div class="confirm-title">Archive project chats?</div>
+            <button type="button" class="confirm-close" title="Close" (click)="cancelArchiveChats()">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="confirm-copy">
+            This will remove all chats inside <strong>{{ dialog.title }}</strong>. The project and its files will stay available.
+          </div>
+          <div class="confirm-actions">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="cancelArchiveChats()">Cancel</button>
+            <button type="button" class="btn btn-danger btn-sm" (click)="confirmArchiveChats()">Archive chats</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (renameProjectDialog(); as dialog) {
+      <div class="rename-project-backdrop" (click)="cancelRenameProject()">
+        <form
+          class="rename-project-dialog"
+          (click)="$event.stopPropagation()"
+          (submit)="$event.preventDefault(); confirmRenameProject()"
+          (keydown.escape)="cancelRenameProject()"
+        >
+          <div class="rename-project-head">
+            <div>
+              <h2 class="rename-project-title">Rename project</h2>
+              <div class="rename-project-subtitle">Keep it short and recognizable</div>
+            </div>
+            <button
+              type="button"
+              class="rename-project-close"
+              title="Close"
+              (click)="cancelRenameProject()"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <input
+            #renameProjectInput
+            class="rename-project-input"
+            type="text"
+            name="projectName"
+            [(ngModel)]="renameProjectDraft"
+            maxlength="120"
+            autocomplete="off"
+          >
+          @if (renameProjectError()) {
+            <div class="rename-project-error">{{ renameProjectError() }}</div>
+          }
+          <div class="rename-project-actions">
+            <button type="button" class="rename-project-btn cancel" (click)="cancelRenameProject()">Cancel</button>
+            <button
+              type="submit"
+              class="rename-project-btn save"
+              [disabled]="isRenamingProject() || !renameProjectDraft.trim() || renameProjectDraft.trim() === dialog.title"
+            >
+              @if (isRenamingProject()) {
+                Saving
+              } @else {
+                Save
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    }
