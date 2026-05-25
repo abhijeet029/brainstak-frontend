@@ -47,26 +47,26 @@ export class EmptyStateComponent {
 
   private projectSuggestions = [
     {
-      title: 'Summarise this project',
-      sub: 'overview of structure and stack',
-      prompt: 'Summarise the structure and main responsibilities of the files in this project.',
+      title: 'Explain pasted code',
+      sub: 'paste a file or snippet',
+      prompt: 'Explain this code and point out the important flow:\n\n',
     },
     {
-      title: 'Find TODOs and FIXMEs',
-      sub: 'list every outstanding marker',
-      prompt: 'Find every TODO, FIXME, and HACK comment across the project and group them by file.',
+      title: 'Debug an error',
+      sub: 'paste stack trace + code',
+      prompt: 'Debug this issue. I will paste the error and relevant code below:\n\n',
     },
     {
-      title: 'Suggest a small improvement',
-      sub: 'one focused refactor',
+      title: 'Suggest a fix',
+      sub: 'copy-paste workflow',
       prompt:
-        'Pick one file in the project and suggest a small, focused refactor that improves clarity or removes duplication. Return the proposed change as a `path:` fenced block.',
+        'Based on this pasted code, suggest what to change and show the corrected version:\n\n',
     },
     {
-      title: 'Explain a file',
-      sub: 'walk me through it',
+      title: 'Review a file',
+      sub: 'paste file content',
       prompt:
-        'Pick the most important file in this project and walk me through what it does, line by line where useful.',
+        'Review this file for bugs, risky logic, and easy improvements:\n\n',
     },
   ];
 }

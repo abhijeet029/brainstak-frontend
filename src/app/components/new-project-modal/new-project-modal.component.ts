@@ -11,6 +11,8 @@ import {
   type ImportedFile,
 } from '../../core/folder-import.util';
 
+import { PROJECT_FILE_APPLY_ENABLED } from "../../core/feature-flags"
+
 declare const bootstrap: { Modal: { getInstance(el: Element): { hide(): void } | null } };
 
 type Step = 'choose' | 'name' | 'permission';
@@ -27,7 +29,7 @@ const DUPLICATE_PROJECT_NAME_MESSAGE = 'Another project already exists with the 
 export class NewProjectModalComponent {
   /** Emitted with the new project id once import completes. */
   @Output() projectCreated = new EventEmitter<string>();
-
+  PROJECT_FILE_APPLY_ENABLED = PROJECT_FILE_APPLY_ENABLED;
   private readonly projects = inject(ProjectService);
   private readonly toast = inject(ToastService);
 

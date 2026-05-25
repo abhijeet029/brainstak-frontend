@@ -4,6 +4,7 @@ import { firstValueFrom, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Project, ProjectFile, ProposedChange } from './models';
 import { ensureDirectoryWritable, readDirectoryHandle } from './folder-import.util';
+import { PROJECT_FILE_APPLY_ENABLED } from './feature-flags';
 
 type DirectoryHandle = FileSystemDirectoryHandle;
 export type FolderConnectionStatus = 'disconnected' | 'read-only' | 'connected';
@@ -179,7 +180,12 @@ export class ProjectService {
     projectId: string,
     projectName: string,
     changes: ProposedChange[],
-  ): Promise<'applied' | 'permission_needed' | 'no_project'> {
+  ): Promise<'applied' | 'permission_needed' | 'no_project' | 'disabled'> {
+    if (!PROJECT_FILE_APPLY_ENABLED) {
+      this.pendingPermissionRequest.set(null);
+      return 'disabled';
+    }
+
     const files = changes.map((c) => ({ path: c.path, content: c.content }));
     const handle = this.directoryHandles.get(projectId);
 
@@ -251,6 +257,8 @@ export class ProjectService {
   }
 
   async syncFilesToBoundDirectory(projectId: string, paths?: string[]) {
+    if (!PROJECT_FILE_APPLY_ENABLED) return;
+
     const root = this.directoryHandles.get(projectId);
     if (!root) return;
     const permission = await ensureWritePermission(root);
@@ -270,6 +278,8 @@ export class ProjectService {
     projectId: string,
     files: Array<{ path: string; content: string }>,
   ) {
+    if (!PROJECT_FILE_APPLY_ENABLED) return;
+
     const root = this.directoryHandles.get(projectId);
     if (!root || !files.length) return;
     const permission = await ensureWritePermission(root);

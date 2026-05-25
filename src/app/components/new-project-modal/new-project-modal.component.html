@@ -27,11 +27,12 @@
               <span class="choice-icon"><i class="bi bi-plus-lg"></i></span>
               <span>Start from scratch</span>
             </button>
-
-            <button class="project-choice" type="button" (click)="onUseExisting()" [disabled]="!fsSupported">
-              <span class="choice-icon"><i class="bi bi-folder2-open"></i></span>
-              <span>Use an existing folder</span>
-            </button>
+            @if(PROJECT_FILE_APPLY_ENABLED){
+              <button class="project-choice" type="button" (click)="onUseExisting()" [disabled]="!fsSupported">
+                <span class="choice-icon"><i class="bi bi-folder2-open"></i></span>
+                <span>Use an existing folder</span>
+              </button>
+            }
           </div>
         }
 
@@ -68,7 +69,7 @@
                 <strong>"Allow this site to edit files?"</strong> confirmation.
                 That's a browser security step — click <strong>Allow</strong>.
               </li>
-              <li>Hub reads and indexes your source files locally. Nothing is uploaded elsewhere.</li>
+              <li>Hub can keep the folder connected for project organization. File retrieval and automatic writes are paused for now.</li>
               <li>You can disconnect the folder at any time from the project settings.</li>
             </ul>
           </div>

@@ -32,13 +32,14 @@
               <app-composer
                 #composer
                 [disabled]="chatSvc.sending()"
-                [placeholder]="'New chat in ' + project.name"
+                [placeholder]="'Paste code or ask what to change in ' + project.name"
                 [intelligence]="selectedIntelligence()"
                 [intelligenceOptions]="intelligenceOptions()"
                 [showDisclaimer]="false"
                 (intelligenceChange)="onIntelligenceChanged($event)"
                 (send)="onSend($event)"
               ></app-composer>
+
 
               <div class="project-tabs" role="tablist" aria-label="Project views">
                 <button
@@ -47,12 +48,12 @@
                   [class.active]="projectTab() === 'chats'"
                   (click)="setProjectTab('chats')"
                 >Chats</button>
-                <button
+                <!-- <button
                   type="button"
                   class="project-tab"
                   [class.active]="projectTab() === 'sources'"
                   (click)="setProjectTab('sources')"
-                >Sources</button>
+                >Sources</button> -->
               </div>
 
               @if (projectTab() === 'chats') {
@@ -68,7 +69,6 @@
                       >
                         <span>
                           <span class="project-list-title">{{ chat.title || 'New chat' }}</span>
-                          <span class="project-list-sub">{{ formatTokenCount(chat.totalTokens ?? 0) }}</span>
                         </span>
                         <span class="project-list-date">
                           <span>{{ formatProjectDate(chat.lastActive) }}</span>
@@ -80,7 +80,7 @@
               } @else {
                 <div class="project-list">
                   @if (projectFiles().length === 0) {
-                    <div class="project-empty">No sources added yet. Add or import project files to use them as context.</div>
+                    <div class="project-empty">No sources added yet. Sources are saved for project organization.</div>
                   } @else {
                     @for (file of projectFiles(); track file.id) {
                       <div class="project-list-row">

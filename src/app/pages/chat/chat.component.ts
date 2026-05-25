@@ -366,6 +366,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         this.toast.show(`✓ Applied ${change.path} to your folder.`, 'success');
         this.shouldScrollToBottom = true;
         done(true);
+      } else if (result === 'disabled') {
+        this.toast.show('Automatic file writing is disabled. Use the response as guidance and apply changes manually.', 'info');
+        done(false);
       } else if (result === 'permission_needed') {
         // Permission card is injected below the messages — scroll down so the user sees it.
         this.shouldScrollToBottom = true;
@@ -422,6 +425,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       if (result === 'applied') {
         this.toast.show(`✓ Applied ${changes.length} file${changes.length === 1 ? '' : 's'} to your folder.`, 'success');
         this.shouldScrollToBottom = true;
+      } else if (result === 'disabled') {
+        this.toast.show('Automatic file writing is disabled. Use the response as guidance and apply changes manually.', 'info');
       } else if (result === 'permission_needed') {
         this.shouldScrollToBottom = true;
         this.toast.show('Folder access needed — click "Allow folder access" below.', 'info');

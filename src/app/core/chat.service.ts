@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { finalize, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Chat, ChatMessage, IntelligenceLevel, ProposedChange, SendResponse, UsedContext } from './models';
+import { PROJECT_PROPOSED_CHANGES_ENABLED } from './feature-flags';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -193,7 +194,7 @@ export class ChatService {
         // PROPOSE-ONLY: do NOT write to project files automatically.
         // Surface the parsed changes so the message renderer can display them
         // and (later) the user can choose to accept them.
-        if (res.proposedChanges?.length) {
+        if (PROJECT_PROPOSED_CHANGES_ENABLED && res.proposedChanges?.length) {
           this.proposedChanges.update((current) => ({
             ...current,
             [res.reply.id]: res.proposedChanges!,

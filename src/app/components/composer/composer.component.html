@@ -1,5 +1,5 @@
     <div class="composer-wrap">
-      <form class="composer" (submit)="onSubmit($event)">
+      <form class="composer" [class.expanded]="expanded()" (submit)="onSubmit($event)">
         <button type="button" class="tool-btn" title="More actions">
           <i class="bi bi-plus-lg"></i>
         </button>

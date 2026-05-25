@@ -50,6 +50,7 @@ export class ComposerComponent implements AfterViewInit, OnDestroy {
 
   text = '';
   menuOpen = false;
+  readonly expanded = signal(false);
 
   // ── Voice state ─────────────────────────────────────────────────────────────
   readonly voiceState = signal<VoiceState>(
@@ -95,8 +96,14 @@ export class ComposerComponent implements AfterViewInit, OnDestroy {
     if (!this.ta) return;
     const el = this.ta.nativeElement;
     el.style.height = 'auto';
-    if (!this.text.trim()) { this.resetHeight(); return; }
-    el.style.height = Math.min(Math.max(el.scrollHeight, this.collapsedHeight), 140) + 'px';
+    if (!this.text.trim()) {
+      this.expanded.set(false);
+      this.resetHeight();
+      return;
+    }
+    const nextHeight = Math.min(Math.max(el.scrollHeight, this.collapsedHeight), 140);
+    el.style.height = nextHeight + 'px';
+    this.expanded.set(nextHeight > this.collapsedHeight + 18);
   }
 
   onKeyDown(e: KeyboardEvent) {
@@ -112,6 +119,7 @@ export class ComposerComponent implements AfterViewInit, OnDestroy {
     this.abortVoice();
     const t = this.text.trim();
     this.text = '';
+    this.expanded.set(false);
     this.autoResize();
     this.send.emit(t);
   }

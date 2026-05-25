@@ -59,13 +59,13 @@
             </div>
 
             <div class="mb-4">
-              <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Project files and RAG</div>
+              <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Project files</div>
               <div class="rag-card">
                 <div class="rag-head">
                   <div>
-                    <div class="rag-title">How project context works</div>
+                    <div class="rag-title">Project context is paused</div>
                     <div class="rag-copy">
-                      Connect a project folder, Hub indexes readable files, then each project chat retrieves the most relevant snippets and sends only those snippets with your prompt.
+                      Project chats now work like normal ChatGPT-style chats. Hub can discuss what to change, but it will not retrieve file snippets or write files automatically.
                     </div>
                   </div>
                   <span class="rag-status" [class.available]="ragAvailable()">
@@ -79,11 +79,11 @@
                   </div>
                   <div class="rag-step">
                     <span>2</span>
-                    <p>Hub chunks and searches the indexed content.</p>
+                    <p>Ask questions and paste exact snippets when needed.</p>
                   </div>
                   <div class="rag-step">
                     <span>3</span>
-                    <p>Relevant snippets are added to project chat requests.</p>
+                    <p>Apply suggested changes manually in your editor.</p>
                   </div>
                 </div>
                 <div class="rag-plans" aria-label="RAG plan availability">
@@ -95,7 +95,7 @@
                   }
                 </div>
                 <div class="usage-note">
-                  RAG uses tokens from the same daily quota because retrieved snippets become part of the prompt. Larger projects or broader questions can consume more input tokens.
+                  RAG retrieval is temporarily disabled to keep prompts smaller and predictable. This can be re-enabled later without removing the existing implementation.
                 </div>
               </div>
             </div>

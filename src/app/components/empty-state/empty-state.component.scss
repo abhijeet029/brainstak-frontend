@@ -13,7 +13,19 @@
   background-clip: text;
   letter-spacing: -0.01em;
 }
-.empty-sub { color: var(--text-secondary); margin-bottom: 32px; font-size: 15px; }
+.empty-sub {
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+  font-size: 15px;
+  text-align: center;
+}
+.empty-project-note {
+  max-width: 560px;
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
 .suggestions {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
