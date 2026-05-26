@@ -562,8 +562,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   private sendToChat(chatId: string, text: string, model?: string, intelligence = this.selectedIntelligence(), displayText?: string) {
     this.clearResumePolling();
-    this.chatSvc.send(chatId, text, intelligence, model, displayText).subscribe({
-      next: (res) => {
+    this.chatSvc.sendStream(chatId, text, intelligence, model, displayText)
+      .then((res) => {
         const wasCheck = this.activeModelCheck();
         this.activeModelCheck.set(null);
         if (wasCheck) {
@@ -575,12 +575,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         }
         this.usage.applyAfterSend(res.usage.remainingTodayTokens);
         this.shouldScrollToBottom = true;
-      },
-      error: (e) => {
+      })
+      .catch((e) => {
         this.activeModelCheck.set(null);
-        this.toast.show(e?.error?.message ?? e?.error?.error ?? 'Send failed', 'error');
-      },
-    });
+        this.toast.show(e?.error?.message ?? e?.error?.error ?? e?.message ?? 'Send failed', 'error');
+      });
     this.shouldScrollToBottom = true;
   }
 

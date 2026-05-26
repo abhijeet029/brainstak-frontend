@@ -401,7 +401,29 @@
   .message { padding: 0 12px; }
 }
 
+.typing-message {
+  margin-top: -6px;
+  margin-bottom: 14px;
+}
+.typing-message .message-content {
+  flex: 0 1 min(760px, 100%);
+  padding-top: 0;
+}
+.typing-message .message-body {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+}
 .typing { display: inline-flex; gap: 4px; padding: 6px 0; }
+.typing-label {
+  display: inline-flex;
+  margin-left: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1;
+  vertical-align: middle;
+}
 .typing-dot {
   width: 7px; height: 7px;
   background: var(--text-secondary);

@@ -149,6 +149,29 @@ export class EncryptionService {
     return out.buffer;
   }
 
+  async encryptedJsonRequest(method: string, url: string, data: unknown): Promise<{ headers: Record<string, string>; body: ArrayBuffer }> {
+    if (!this.ready() || !this._sessionId) await this.init();
+    if (!this._sessionId || !this._hmacKey || !this._aesKey) throw new Error('EncryptionService not ready');
+
+    const nonce = crypto.randomUUID();
+    const timestamp = String(Date.now());
+    const path = new URL(url).pathname;
+    const signature = await this.sign(method, path, timestamp, nonce);
+    const body = await this.encryptBody(data);
+
+    return {
+      body,
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-Enc-Session': this._sessionId,
+        'X-Request-Nonce': nonce,
+        'X-Request-Timestamp': timestamp,
+        'X-Request-Signature': signature,
+        'X-Api-Version': '1',
+      },
+    };
+  }
+
   // ── AES-256-GCM response decryption ───────────────────────────────────────
 
   /**

@@ -37,13 +37,13 @@ export class LoginComponent implements OnInit {
       });
 
       const isDark = this.themeSvc.theme() === 'dark';
-      const buttonWidth = Math.min(window.innerWidth - 64, window.innerWidth >= 960 ? 380 : 320);
+      const buttonWidth = Math.min(window.innerWidth - 64, window.innerWidth >= 960 ? 430 : 350);
       google.accounts.id.renderButton(this.gbtn.nativeElement, {
         theme: isDark ? 'filled_black' : 'outline',
         size: 'large',
         shape: 'pill',
         text: 'continue_with',
-        width: Math.max(280, buttonWidth),
+        width: Math.max(320, buttonWidth),
       });
       google.accounts.id.prompt();
     };

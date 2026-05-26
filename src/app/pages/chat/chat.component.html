@@ -187,7 +187,7 @@
                 <!-- optimistic user msg already inserted, typing indicator handled below -->
               }
               @if (waitingForReply()) {
-                <div class="message assistant">
+                <div class="message assistant typing-message">
                   <div class="message-content">
                     <div class="message-body">
                       <span class="typing">
@@ -195,6 +195,9 @@
                         <span class="typing-dot"></span>
                         <span class="typing-dot"></span>
                       </span>
+                      @if (chatSvc.streamStatus(); as status) {
+                        <span class="typing-label">{{ status }}</span>
+                      }
                     </div>
                   </div>
                 </div>

@@ -5,17 +5,20 @@ import { finalize, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Chat, ChatMessage, IntelligenceLevel, ProposedChange, SendResponse, UsedContext } from './models';
 import { PROJECT_PROPOSED_CHANGES_ENABLED } from './feature-flags';
+import { EncryptionService } from './encryption.service';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private encryption = inject(EncryptionService);
   private base = environment.apiUrl + '/v1';
 
   readonly chats = signal<Chat[]>([]);
   readonly activeChatId = signal<string | null>(null);
   readonly messages = signal<ChatMessage[]>([]);
   readonly sending = signal<boolean>(false);
+  readonly streamStatus = signal<string | null>(null);
   readonly pinnedChatId = signal<string | null>(null);
   readonly temporaryMode = signal<boolean>(false);
 
@@ -233,6 +236,96 @@ export class ChatService {
     );
   }
 
+  async sendStream(
+    chatId: string,
+    message: string,
+    intelligence: IntelligenceLevel = 'low',
+    model?: string,
+    displayMessage?: string,
+  ): Promise<SendResponse> {
+    this.sending.set(true);
+    const visibleMessage = displayMessage ?? message;
+    const existingOptimistic = this.messages().find((m) =>
+      m.role === 'user' &&
+      m.id.startsWith('tmp-user-pending-') &&
+      m.content === visibleMessage
+    );
+    const optimisticId = existingOptimistic?.id ?? 'tmp-user-' + Date.now();
+    if (existingOptimistic) {
+      this.messages.set(this.messages().map((m) => m.id === optimisticId ? { ...m, chatId } : m));
+    } else {
+      this.messages.set([
+        ...this.messages(),
+        {
+          id: optimisticId,
+          chatId,
+          role: 'user',
+          content: visibleMessage,
+          model: null,
+          tokensIn: null,
+          tokensOut: null,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+    }
+
+    const tempAssistantId = 'tmp-assistant-' + Date.now();
+    let assistantStarted = false;
+    let doneResponse: SendResponse | null = null;
+
+    try {
+      this.streamStatus.set('Thinking');
+      await this.consumeSse(`${this.base}/chats/${chatId}/messages/stream`, {
+        message,
+        intelligence,
+        ...(displayMessage ? { displayMessage } : {}),
+        ...(model ? { model } : {}),
+      }, {
+        status: (payload) => {
+          const status = typeof payload?.status === 'string' ? payload.status : '';
+          this.streamStatus.set(status ? titleCaseStatus(status) : null);
+        },
+        delta: (payload) => {
+          const delta = typeof payload?.delta === 'string' ? payload.delta : '';
+          if (!delta) return;
+          if (!assistantStarted) {
+            assistantStarted = true;
+            this.messages.set([
+              ...this.messages(),
+              {
+                id: tempAssistantId,
+                chatId,
+                role: 'assistant',
+                content: delta,
+                model: model ?? null,
+                tokensIn: null,
+                tokensOut: null,
+                createdAt: new Date().toISOString(),
+              },
+            ]);
+            return;
+          }
+          this.messages.set(this.messages().map((m) =>
+            m.id === tempAssistantId ? { ...m, content: m.content + delta } : m,
+          ));
+        },
+        done: (payload) => {
+          doneResponse = payload as SendResponse;
+        },
+        error: (payload) => {
+          throw new Error(payload?.error ?? 'Stream failed');
+        },
+      });
+
+      if (!doneResponse) throw new Error('Stream ended before completion');
+      this.applySendResponse(chatId, message, optimisticId, doneResponse, tempAssistantId);
+      return doneResponse;
+    } finally {
+      this.streamStatus.set(null);
+      this.sending.set(false);
+    }
+  }
+
   sendTemporary(displayMessage: string, intelligence: IntelligenceLevel = 'low', model?: string, message = displayMessage) {
     this.sending.set(true);
     const chatId = 'temporary';
@@ -253,7 +346,7 @@ export class ChatService {
 
     return this.http.post<SendResponse>(
       `${this.base}/chats/temporary/messages`,
-      { message, history, intelligence, ...(model ? { model } : {}) },
+      { message, displayMessage, history, intelligence, ...(model ? { model } : {}) },
     ).pipe(
       tap((res) => {
         const assistant: ChatMessage = {
@@ -292,6 +385,132 @@ export class ChatService {
       }),
       finalize(() => this.sending.set(false)),
     );
+  }
+
+  private applySendResponse(
+    chatId: string,
+    message: string,
+    optimisticId: string,
+    res: SendResponse,
+    tempAssistantId?: string,
+  ) {
+    const assistant: ChatMessage = {
+      id: res.reply.id,
+      chatId,
+      role: 'assistant',
+      content: res.reply.content,
+      model: res.reply.model,
+      tokensIn: null,
+      tokensOut: null,
+      createdAt: res.reply.createdAt,
+    };
+    const savedUser: ChatMessage | null = res.userMessage
+      ? {
+          id: res.userMessage.id,
+          chatId,
+          role: 'user',
+          content: res.userMessage.content,
+          model: null,
+          tokensIn: null,
+          tokensOut: null,
+          createdAt: res.userMessage.createdAt,
+        }
+      : null;
+    const withoutDupe = this.messages()
+      .filter((m) =>
+        m.id !== res.reply.id &&
+        m.id !== tempAssistantId &&
+        (!savedUser || m.id !== savedUser.id)
+      )
+      .map((m) => (m.id === optimisticId ? (savedUser ?? m) : m));
+    const hasUser = savedUser ? withoutDupe.some((m) => m.id === savedUser.id) : true;
+    const withUser = savedUser && !hasUser ? [...withoutDupe, savedUser] : withoutDupe;
+    this.messages.set([...withUser, assistant]);
+
+    const list = this.chats();
+    const idx = list.findIndex((c) => c.id === chatId);
+    if (idx >= 0) {
+      const updated = {
+        ...list[idx]!,
+        lastActive: new Date().toISOString(),
+        totalTokens: (list[idx]!.totalTokens ?? 0) + res.usage.tokens,
+      };
+      if (!updated.title) updated.title = message.slice(0, 60);
+      this.chats.set([updated, ...list.filter((_, i) => i !== idx)]);
+    }
+
+    if (PROJECT_PROPOSED_CHANGES_ENABLED && res.proposedChanges?.length) {
+      this.proposedChanges.update((current) => ({
+        ...current,
+        [res.reply.id]: res.proposedChanges!,
+      }));
+    }
+    if (res.usedContext?.length) {
+      this.usedContext.update((current) => ({
+        ...current,
+        [res.reply.id]: res.usedContext!,
+      }));
+    }
+    if (res.followUps?.length) {
+      this.followUps.update((current) => ({
+        ...current,
+        [res.reply.id]: res.followUps!,
+      }));
+    }
+    if (res.downgrade) {
+      const downgrade = res.downgrade;
+      this.downgradeNotes.update((current) => ({
+        ...current,
+        [res.reply.id]: `Requested ${capitalize(downgrade.requested)}, used ${capitalize(downgrade.used)}. ${downgrade.reason}`,
+      }));
+    }
+    this.tokenMeta.update((current) => ({
+      ...current,
+      [res.reply.id]: buildTokenMeta(res),
+    }));
+    this.replyIntelligence.update((current) => ({
+      ...current,
+      [res.reply.id]: res.routing.intelligence,
+    }));
+  }
+
+  private async consumeSse(
+    url: string,
+    body: unknown,
+    handlers: Record<string, (payload: any) => void>,
+  ) {
+    const encrypted = await this.encryption.encryptedJsonRequest('POST', url, body);
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: encrypted.headers,
+      body: encrypted.body,
+    });
+    if (!response.ok || !response.body) throw new Error(`Stream failed with ${response.status}`);
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() ?? '';
+
+      for (const rawEvent of events) {
+        let event = 'message';
+        const dataLines: string[] = [];
+        for (const line of rawEvent.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+        }
+        if (!dataLines.length) continue;
+        const payload = JSON.parse(dataLines.join('\n'));
+        handlers[event]?.(payload);
+      }
+    }
   }
 
   reset() {
@@ -391,6 +610,12 @@ function buildTokenMeta(res: SendResponse) {
   ];
   if (res.usedContext?.length) parts.push('project context used');
   return parts.join(' · ');
+}
+
+function titleCaseStatus(status: string) {
+  return status
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function normalizeMessageContent(value: string) {

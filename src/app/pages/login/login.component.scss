@@ -61,12 +61,12 @@
 .g-btn-wrap {
   display: flex;
   justify-content: center;
-  min-height: 58px;
-  margin-bottom: 8px;
+  min-height: 68px;
+  margin: 4px auto 10px;
 }
 
 :host ::ng-deep .g-btn-wrap iframe {
-  transform: scale(1.12);
+  transform: scale(1.22);
   transform-origin: center;
 }
 
@@ -122,10 +122,10 @@
   }
 
   .g-btn-wrap {
-    min-height: 50px;
+    min-height: 58px;
   }
 
   :host ::ng-deep .g-btn-wrap iframe {
-    transform: scale(1.04);
+    transform: scale(1.1);
   }
 }
