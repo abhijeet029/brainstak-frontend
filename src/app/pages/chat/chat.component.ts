@@ -534,6 +534,18 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     this.preferredModel.set(event);
   }
 
+  onFeedbackChange(event: { messageId: string; feedbackType: 'like' | 'dislike' | null }) {
+    const chatId = this.chatSvc.activeChatId();
+    if (!chatId) return;
+    this.chatSvc.setMessageFeedback(chatId, event.messageId, event.feedbackType).subscribe({
+      next: () => {
+        if (event.feedbackType === 'like') this.toast.show('Thanks for the feedback.', 'success');
+        if (event.feedbackType === 'dislike') this.toast.show('Thanks, we’ll use this to improve responses.', 'info');
+      },
+      error: (e) => this.toast.show(e?.error?.message ?? e?.error?.error ?? 'Could not save feedback', 'error'),
+    });
+  }
+
   clearPreferredModel() {
     this.preferredModel.set(null);
   }

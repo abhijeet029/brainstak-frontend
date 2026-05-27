@@ -343,13 +343,36 @@ export class ChatService {
         },
       });
 
-      if (!doneResponse) throw new Error('Stream ended before completion');
-      this.applySendResponse(chatId, message, optimisticId, doneResponse, tempAssistantId);
-      return doneResponse;
+      const finalResponse = doneResponse as SendResponse | null;
+      if (!finalResponse) throw new Error('Stream ended before completion');
+      await this.smoothAppendAssistantTail(tempAssistantId, finalResponse.reply.content);
+      this.applySendResponse(chatId, message, optimisticId, finalResponse, tempAssistantId);
+      return finalResponse;
     } finally {
       flushDelta();
       this.streamStatus.set(null);
       this.sending.set(false);
+    }
+  }
+
+  private async smoothAppendAssistantTail(tempAssistantId: string, finalContent: string): Promise<void> {
+    const current = this.messages().find((m) => m.id === tempAssistantId);
+    if (!current) return;
+    const currentContent = current.content ?? '';
+    if (!finalContent || finalContent.length <= currentContent.length) return;
+    if (!finalContent.startsWith(currentContent)) return;
+
+    const tail = finalContent.slice(currentContent.length);
+    if (!tail) return;
+
+    // Append in small chunks to avoid the "final dump" feel at stream end.
+    const chunkSize = 24;
+    for (let i = 0; i < tail.length; i += chunkSize) {
+      const piece = tail.slice(i, i + chunkSize);
+      this.messages.set(this.messages().map((m) =>
+        m.id === tempAssistantId ? { ...m, content: m.content + piece } : m,
+      ));
+      await new Promise((resolve) => setTimeout(resolve, 14));
     }
   }
 
@@ -453,16 +476,20 @@ export class ChatService {
           createdAt: res.userMessage.createdAt,
         }
       : null;
-    const withoutDupe = this.messages()
-      .filter((m) =>
-        m.id !== res.reply.id &&
-        m.id !== tempAssistantId &&
-        (!savedUser || m.id !== savedUser.id)
-      )
-      .map((m) => (m.id === optimisticId ? (savedUser ?? m) : m));
-    const hasUser = savedUser ? withoutDupe.some((m) => m.id === savedUser.id) : true;
-    const withUser = savedUser && !hasUser ? [...withoutDupe, savedUser] : withoutDupe;
-    this.messages.set([...withUser, assistant]);
+    const currentMessages = this.messages();
+    const hasTempAssistant = !!tempAssistantId && currentMessages.some((m) => m.id === tempAssistantId);
+    const mapped = currentMessages
+      .filter((m) => m.id !== res.reply.id && (!savedUser || m.id !== savedUser.id))
+      .map((m) => {
+        if (m.id === optimisticId) return savedUser ?? m;
+        if (hasTempAssistant && m.id === tempAssistantId) return assistant;
+        return m;
+      });
+    const hasAssistant = mapped.some((m) => m.id === assistant.id || m.clientKey === assistant.clientKey);
+    const withAssistant = hasAssistant ? mapped : [...mapped, assistant];
+    const hasUser = savedUser ? withAssistant.some((m) => m.id === savedUser.id) : true;
+    const finalMessages = savedUser && !hasUser ? [...withAssistant, savedUser] : withAssistant;
+    this.messages.set(finalMessages);
 
     const list = this.chats();
     const idx = list.findIndex((c) => c.id === chatId);
@@ -618,6 +645,34 @@ export class ChatService {
 
   getTokenMeta(messageId: string): string | null {
     return this.tokenMeta()[messageId] ?? null;
+  }
+
+  setMessageFeedback(chatId: string, messageId: string, feedbackType: 'like' | 'dislike' | null) {
+    const previous = this.messages();
+    this.messages.set(
+      this.messages().map((m) =>
+        m.id === messageId ? { ...m, feedbackType } : m,
+      ),
+    );
+    return this.http
+      .post<{ ok: true; feedbackType: 'like' | 'dislike' | null }>(
+        `${this.base}/chats/${chatId}/messages/${messageId}/feedback`,
+        { feedbackType },
+      )
+      .pipe(
+        tap({
+          next: (res) => {
+            this.messages.set(
+              this.messages().map((m) =>
+                m.id === messageId ? { ...m, feedbackType: res.feedbackType } : m,
+              ),
+            );
+          },
+          error: () => {
+            this.messages.set(previous);
+          },
+        }),
+      );
   }
 
   getReplyIntelligence(messageId: string): IntelligenceLevel | null {

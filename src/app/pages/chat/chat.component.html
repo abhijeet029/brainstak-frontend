@@ -140,6 +140,7 @@
                   [followUps]="chatSvc.getFollowUps(m.id)"
                   [downgradeNote]="chatSvc.getDowngradeNote(m.id)"
                   [tokenMeta]="chatSvc.getTokenMeta(m.id)"
+                  [feedbackType]="m.feedbackType ?? null"
                   [replyIntelligence]="chatSvc.getReplyIntelligence(m.id)"
                   [checkingModel]="checkingModelFor(m.id)"
                   [preferChip]="checkResponseModelFor(m.id)"
@@ -153,6 +154,7 @@
                   (checkModel)="onCheckModel($event)"
                   (preferModel)="onPreferModel($event)"
                   (regenerateResponse)="onRegenerateResponse($event)"
+                  (feedbackChange)="onFeedbackChange($event)"
                 ></app-message>
               }
 

@@ -56,6 +56,7 @@ export interface ChatMessage {
   model: string | null;
   tokensIn: number | null;
   tokensOut: number | null;
+  feedbackType?: 'like' | 'dislike' | null;
   createdAt: string;
 }
 

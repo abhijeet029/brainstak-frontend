@@ -102,6 +102,7 @@ type MessageBlock = TextBlock | CodeBlock;
 })
 export class MessageComponent implements OnChanges {
   @Input({ required: true }) message!: ChatMessage;
+  @Input() feedbackType: 'like' | 'dislike' | null = null;
   @Input() userInitial = 'U';
   @Input() followUps: string[] = [];
   @Input() downgradeNote: string | null = null;
@@ -127,6 +128,7 @@ export class MessageComponent implements OnChanges {
   @Output() checkModel = new EventEmitter<{ assistantMessageId: string; model: string; modelLabel: string; intelligence: IntelligenceLevel }>();
   @Output() preferModel = new EventEmitter<{ model: string; modelLabel: string }>();
   @Output() regenerateResponse = new EventEmitter<{ assistantMessageId: string; model: string | null; modelLabel: string | null; intelligence: IntelligenceLevel }>();
+  @Output() feedbackChange = new EventEmitter<{ messageId: string; feedbackType: 'like' | 'dislike' | null }>();
 
   readonly copiedIndex = signal<number | null>(null);
   readonly responseCopied = signal(false);
@@ -347,6 +349,12 @@ export class MessageComponent implements OnChanges {
     } catch {
       this.responseCopied.set(false);
     }
+  }
+
+  onToggleFeedback(next: 'like' | 'dislike') {
+    if (this.isUser()) return;
+    const value: 'like' | 'dislike' | null = this.feedbackType === next ? null : next;
+    this.feedbackChange.emit({ messageId: this.message.id, feedbackType: value });
   }
 }
 
@@ -580,12 +588,13 @@ function formatTextBlock(text: string): string {
       continue;
     }
 
-    // Ignore markdown horizontal-rule separators like ---, ***, ___
-    // so they don't render as awkward plain text rows.
+    // Render markdown horizontal-rule separators like ---, ***, ___
+    // as visual section dividers.
     if (/^[-*_]{3,}$/.test(trimmedLine)) {
       flushParagraph();
       flushList();
       flushTable();
+      parts.push('<hr class="md-hr" />');
       continue;
     }
 

@@ -76,6 +76,24 @@
               >
                 <i class="bi" [class.bi-copy]="!responseCopied()" [class.bi-check2]="responseCopied()"></i>
               </button>
+              <button
+                type="button"
+                class="assistant-icon-btn"
+                [class.active]="feedbackType === 'like'"
+                title="Like response"
+                (click)="onToggleFeedback('like')"
+              >
+                <i class="bi bi-hand-thumbs-up"></i>
+              </button>
+              <button
+                type="button"
+                class="assistant-icon-btn"
+                [class.active]="feedbackType === 'dislike'"
+                title="Dislike response"
+                (click)="onToggleFeedback('dislike')"
+              >
+                <i class="bi bi-hand-thumbs-down"></i>
+              </button>
               <div
                 class="icon-tooltip-wrap"
               >
@@ -101,7 +119,7 @@
                   [attr.aria-expanded]="modelMenuOpen()"
                   title="Choose model"
                 >
-                  <i class="bi bi-gear"></i>
+                  <i class="bi bi-cpu"></i>
                 </button>
                 @if (modelMenuOpen()) {
                   <div class="model-menu" role="menu">
