@@ -48,6 +48,8 @@ export interface ProjectFile {
 
 export interface ChatMessage {
   id: string;
+  /** Stable local render key to avoid remount flicker while temp ids get replaced. */
+  clientKey?: string;
   chatId: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -113,6 +115,7 @@ export interface SendResponse {
     escalationLevel: number;
     unresolvedTurns: number;
     usedProjectRag: boolean;
+    usedWebGrounding: boolean;
     historyMessages: number;
     bucket: string;
     strategy: string;

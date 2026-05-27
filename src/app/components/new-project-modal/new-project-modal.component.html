@@ -1,15 +1,29 @@
 <div class="modal fade" id="newProjectModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">New project</h5>
+      <div class="modal-header create-project-header">
+        <h5 class="modal-title">Create project</h5>
+        <div class="modal-header-actions">
+          @if (PROJECT_FILE_APPLY_ENABLED) {
+            <button
+              type="button"
+              class="modal-icon-btn"
+              title="Project options"
+              (click)="advancedOpen.set(!advancedOpen())"
+            >
+              <i class="bi bi-gear"></i>
+            </button>
+          }
         <button
           type="button"
-          class="btn-close btn-close-white"
+            class="modal-icon-btn"
           data-bs-dismiss="modal"
           aria-label="Close"
           (click)="reset()"
-        ></button>
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
       </div>
 
       <div class="modal-body">
@@ -21,36 +35,41 @@
           </div>
         }
 
-        @if (step() === 'choose') {
-          <div class="project-choice-list">
-            <button class="project-choice" type="button" (click)="onStartScratch()">
-              <span class="choice-icon"><i class="bi bi-plus-lg"></i></span>
-              <span>Start from scratch</span>
-            </button>
-            @if(PROJECT_FILE_APPLY_ENABLED){
-              <button class="project-choice" type="button" (click)="onUseExisting()" [disabled]="!fsSupported">
-                <span class="choice-icon"><i class="bi bi-folder2-open"></i></span>
-                <span>Use an existing folder</span>
-              </button>
-            }
-          </div>
-        }
-
         @if (step() === 'name') {
-          <form class="name-step" (submit)="$event.preventDefault(); onNameContinue()">
-            <div class="name-title">Name your project</div>
-            <div class="name-copy">
-              Choose a short name you can recognize later.
+          <form class="create-project-form" (submit)="$event.preventDefault(); onNameContinue()">
+            <label class="project-name-label" for="new-project-name">Project name</label>
+            <div class="project-name-field">
+              <i class="bi bi-emoji-smile"></i>
+              <input
+                id="new-project-name"
+                type="text"
+                name="projectName"
+                [(ngModel)]="projectNameDraft"
+                maxlength="120"
+                autocomplete="off"
+                placeholder="Tajmahal Trip"
+              >
             </div>
-            <input
-              class="form-control project-name-input"
-              type="text"
-              name="projectName"
-              [(ngModel)]="projectNameDraft"
-              maxlength="120"
-              autocomplete="off"
-              placeholder="Project name"
-            >
+
+            @if (advancedOpen()) {
+              <div class="project-choice-list">
+                <button class="project-choice" type="button" (click)="onStartScratch()">
+                  <span class="choice-icon"><i class="bi bi-plus-lg"></i></span>
+                  <span>Start from scratch</span>
+                </button>
+                @if(PROJECT_FILE_APPLY_ENABLED){
+                  <button class="project-choice" type="button" (click)="onUseExisting()" [disabled]="!fsSupported">
+                    <span class="choice-icon"><i class="bi bi-folder2-open"></i></span>
+                    <span>Use an existing folder</span>
+                  </button>
+                }
+              </div>
+            }
+
+            <div class="project-info-card">
+              <i class="bi bi-lightbulb"></i>
+              <span>Projects keep chats, files, and custom instructions in one place. Use them for ongoing work, or just to keep things tidy.</span>
+            </div>
           </form>
         }
 
@@ -82,22 +101,15 @@
       </div>
 
       <div class="modal-footer">
-        @if (step() === 'choose') {
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" (click)="reset()">
-            Cancel
-          </button>
-        } @else if (step() === 'name') {
-          <button type="button" class="btn btn-secondary" (click)="back()">Back</button>
+        @if (step() === 'name') {
           <button
             type="button"
-            class="btn btn-primary"
+            class="btn create-project-submit"
             (click)="onNameContinue()"
             [disabled]="isCreating() || !projectNameDraft.trim()"
           >
             @if (isCreating()) {
               <span class="spinner-border spinner-border-sm me-2" role="status"></span>Creating...
-            } @else if (pendingFlow() === 'folder') {
-              Continue
             } @else {
               Create project
             }

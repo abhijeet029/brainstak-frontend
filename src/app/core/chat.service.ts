@@ -78,7 +78,10 @@ export class ChatService {
       .pipe(tap((res) => {
         const pending = this.sending()
           ? this.messages()
-              .filter((m) => m.role === 'user' && m.id.startsWith('tmp-user-'))
+              .filter((m) =>
+                (m.role === 'user' && m.id.startsWith('tmp-user-')) ||
+                (m.role === 'assistant' && m.id.startsWith('tmp-assistant-')),
+              )
               .map((m) => ({ ...m, chatId }))
           : [];
         const savedIds = new Set(res.messages.map((m) => m.id));
@@ -90,7 +93,8 @@ export class ChatService {
         this.messages.set([
           ...res.messages,
           ...pending.filter((m) =>
-            !savedIds.has(m.id) && !savedUserContent.has(normalizeMessageContent(m.content)),
+            !savedIds.has(m.id) &&
+            (m.role !== 'user' || !savedUserContent.has(normalizeMessageContent(m.content))),
           ),
         ]);
       }));
@@ -272,6 +276,45 @@ export class ChatService {
     const tempAssistantId = 'tmp-assistant-' + Date.now();
     let assistantStarted = false;
     let doneResponse: SendResponse | null = null;
+    let pendingDelta = '';
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flushDelta = () => {
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      const delta = pendingDelta;
+      pendingDelta = '';
+      if (!delta) return;
+
+      if (!assistantStarted) {
+        assistantStarted = true;
+        this.messages.set([
+          ...this.messages(),
+          {
+            id: tempAssistantId,
+            clientKey: tempAssistantId,
+            chatId,
+            role: 'assistant',
+            content: delta,
+            model: model ?? null,
+            tokensIn: null,
+            tokensOut: null,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+        return;
+      }
+      this.messages.set(this.messages().map((m) =>
+        m.id === tempAssistantId ? { ...m, content: m.content + delta } : m,
+      ));
+    };
+
+    const scheduleFlush = () => {
+      if (flushTimer) return;
+      flushTimer = setTimeout(flushDelta, 32);
+    };
 
     try {
       this.streamStatus.set('Thinking');
@@ -288,28 +331,11 @@ export class ChatService {
         delta: (payload) => {
           const delta = typeof payload?.delta === 'string' ? payload.delta : '';
           if (!delta) return;
-          if (!assistantStarted) {
-            assistantStarted = true;
-            this.messages.set([
-              ...this.messages(),
-              {
-                id: tempAssistantId,
-                chatId,
-                role: 'assistant',
-                content: delta,
-                model: model ?? null,
-                tokensIn: null,
-                tokensOut: null,
-                createdAt: new Date().toISOString(),
-              },
-            ]);
-            return;
-          }
-          this.messages.set(this.messages().map((m) =>
-            m.id === tempAssistantId ? { ...m, content: m.content + delta } : m,
-          ));
+          pendingDelta += delta;
+          scheduleFlush();
         },
         done: (payload) => {
+          flushDelta();
           doneResponse = payload as SendResponse;
         },
         error: (payload) => {
@@ -321,6 +347,7 @@ export class ChatService {
       this.applySendResponse(chatId, message, optimisticId, doneResponse, tempAssistantId);
       return doneResponse;
     } finally {
+      flushDelta();
       this.streamStatus.set(null);
       this.sending.set(false);
     }
@@ -394,11 +421,20 @@ export class ChatService {
     res: SendResponse,
     tempAssistantId?: string,
   ) {
+    const existingTempAssistant = tempAssistantId
+      ? this.messages().find((m) => m.id === tempAssistantId)
+      : null;
+    const mergedAssistantContent = existingTempAssistant?.content?.trim().length
+      ? (res.reply.content.length >= existingTempAssistant.content.length
+          ? res.reply.content
+          : existingTempAssistant.content)
+      : res.reply.content;
     const assistant: ChatMessage = {
       id: res.reply.id,
+      clientKey: existingTempAssistant?.clientKey ?? tempAssistantId ?? res.reply.id,
       chatId,
       role: 'assistant',
-      content: res.reply.content,
+      content: mergedAssistantContent,
       model: res.reply.model,
       tokensIn: null,
       tokensOut: null,
@@ -407,6 +443,7 @@ export class ChatService {
     const savedUser: ChatMessage | null = res.userMessage
       ? {
           id: res.userMessage.id,
+          clientKey: optimisticId,
           chatId,
           role: 'user',
           content: res.userMessage.content,

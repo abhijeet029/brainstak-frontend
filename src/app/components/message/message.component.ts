@@ -126,12 +126,16 @@ export class MessageComponent implements OnChanges {
   @Output() editResend = new EventEmitter<{ chatId: string; messageId: string; content: string }>();
   @Output() checkModel = new EventEmitter<{ assistantMessageId: string; model: string; modelLabel: string; intelligence: IntelligenceLevel }>();
   @Output() preferModel = new EventEmitter<{ model: string; modelLabel: string }>();
+  @Output() regenerateResponse = new EventEmitter<{ assistantMessageId: string; model: string | null; modelLabel: string | null; intelligence: IntelligenceLevel }>();
 
   readonly copiedIndex = signal<number | null>(null);
   readonly responseCopied = signal(false);
   readonly changesPanelOpen = signal(false);
+  readonly modelMenuOpen = signal(false);
+  readonly suggestionMenuOpen = signal(false);
   readonly editing = signal(false);
   editDraft = '';
+  private lastMessageId: string | null = null;
 
   /** Per-file status: key = path, value = status. */
   readonly fileStatus = signal<Record<string, FileChangeStatus>>({});
@@ -139,6 +143,9 @@ export class MessageComponent implements OnChanges {
   readonly expandedFiles = signal<Record<string, boolean>>({});
 
   ngOnChanges() {
+    const messageChanged = this.lastMessageId !== this.message.id;
+    this.lastMessageId = this.message.id;
+
     // Initialize status for any new proposed changes
     if (this.proposedChanges.length) {
       const current = this.fileStatus();
@@ -165,12 +172,17 @@ export class MessageComponent implements OnChanges {
     } else {
       this.changesPanelOpen.set(false);
     }
+    if (messageChanged) {
+      this.modelMenuOpen.set(false);
+      this.suggestionMenuOpen.set(false);
+    }
   }
 
   isUser = () => this.message.role === 'user';
   author = () => (this.isUser() ? 'You' : 'Hub');
   initial = () => (this.isUser() ? this.userInitial : 'H');
   renderedBlocks = () => parseMessage(this.message.content);
+  isStreamingAssistant = () => !this.isUser() && this.message.id.startsWith('tmp-assistant-');
   visibleBlocks = () => {
     const blocks = this.renderedBlocks();
     if (!this.hasProposedChanges()) return blocks;
@@ -191,6 +203,48 @@ export class MessageComponent implements OnChanges {
     this.replyIntelligence ?? (this.message.model ? levelForModel(this.message.model) : 'low');
   isCheckingModel = (modelId: string) => this.checkingModel === modelId;
   isCheckDisabled = (modelId: string) => !!this.checkingModel && this.checkingModel !== modelId;
+  currentModelLabel = () =>
+    this.message.model
+      ? sameTierModels(this.responseIntelligence()).find((model) => model.id === this.message.model)?.label ?? this.message.model
+      : null;
+
+  toggleModelMenu() {
+    if (!this.alternateModels().length) return;
+    this.modelMenuOpen.set(!this.modelMenuOpen());
+    this.suggestionMenuOpen.set(false);
+  }
+
+  checkWithModel(model: { id: string; label: string }) {
+    this.modelMenuOpen.set(false);
+    this.checkModel.emit({
+      assistantMessageId: this.message.id,
+      model: model.id,
+      modelLabel: model.label,
+      intelligence: this.responseIntelligence(),
+    });
+  }
+
+  regenerateCurrentResponse() {
+    if (this.isUser()) return;
+    this.modelMenuOpen.set(false);
+    this.regenerateResponse.emit({
+      assistantMessageId: this.message.id,
+      model: this.message.model,
+      modelLabel: this.currentModelLabel(),
+      intelligence: this.responseIntelligence(),
+    });
+  }
+
+  toggleSuggestionMenu() {
+    if (!this.hasFollowUps()) return;
+    this.suggestionMenuOpen.set(!this.suggestionMenuOpen());
+    this.modelMenuOpen.set(false);
+  }
+
+  useSuggestion(item: string) {
+    this.suggestionMenuOpen.set(false);
+    this.useFollowUp.emit(item);
+  }
 
   startEdit() {
     this.editDraft = this.message.content;
@@ -470,6 +524,7 @@ function formatTextBlock(text: string): string {
   const parts: string[] = [];
   let paragraphBuffer: string[] = [];
   let listBuffer: Array<{ ordered: boolean; content: string }> = [];
+  let tableBuffer: string[] = [];
 
   const flushParagraph = () => {
     if (!paragraphBuffer.length) return;
@@ -502,6 +557,14 @@ function formatTextBlock(text: string): string {
     listBuffer = [];
   };
 
+  const flushTable = () => {
+    if (!tableBuffer.length) return;
+    const html = formatMarkdownTable(tableBuffer);
+    if (html) parts.push(html);
+    else paragraphBuffer.push(...tableBuffer);
+    tableBuffer = [];
+  };
+
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
     const trimmedLine = line.trim();
@@ -509,13 +572,33 @@ function formatTextBlock(text: string): string {
     if (!trimmedLine) {
       flushParagraph();
       flushList();
+      flushTable();
       continue;
     }
 
-    const bulletMatch = trimmedLine.match(/^[-*]\s+(.+)$/);
+    // Ignore markdown horizontal-rule separators like ---, ***, ___
+    // so they don't render as awkward plain text rows.
+    if (/^[-*_]{3,}$/.test(trimmedLine)) {
+      flushParagraph();
+      flushList();
+      flushTable();
+      continue;
+    }
+
+    if (looksLikeTableLine(trimmedLine)) {
+      flushParagraph();
+      flushList();
+      tableBuffer.push(trimmedLine);
+      continue;
+    }
+
+    if (tableBuffer.length) flushTable();
+
+    const bulletMatch = trimmedLine.match(/^[-*+]\s+(?:\[[ xX]\]\s*)?(.+)$/);
     const orderedMatch = trimmedLine.match(/^\d+\.\s+(.+)$/);
     if (bulletMatch || orderedMatch) {
       flushParagraph();
+      flushTable();
       listBuffer.push({
         ordered: Boolean(orderedMatch),
         content: (orderedMatch?.[1] ?? bulletMatch?.[1] ?? '').trim(),
@@ -529,7 +612,46 @@ function formatTextBlock(text: string): string {
 
   flushParagraph();
   flushList();
+  flushTable();
   return parts.join('');
+}
+
+function looksLikeTableLine(line: string): boolean {
+  return line.includes('|') && line.split('|').length >= 3;
+}
+
+function isMarkdownTableSeparator(line: string): boolean {
+  const cells = splitTableRow(line);
+  return cells.length > 1 && cells.every((cell) => /^:?-{3,}:?$/.test(cell.trim()));
+}
+
+function splitTableRow(line: string): string[] {
+  return line
+    .replace(/^\|/, '')
+    .replace(/\|$/, '')
+    .split('|')
+    .map((cell) => cell.trim());
+}
+
+function formatMarkdownTable(lines: string[]): string {
+  if (lines.length < 2) return '';
+  const separatorIndex = lines.findIndex(isMarkdownTableSeparator);
+  if (separatorIndex <= 0) return '';
+
+  const header = splitTableRow(lines[separatorIndex - 1]!);
+  const bodyLines = lines.slice(separatorIndex + 1).filter((line) => !isMarkdownTableSeparator(line));
+  if (!header.length || !bodyLines.length) return '';
+
+  const rows = bodyLines.map(splitTableRow).filter((row) => row.length > 1);
+  if (!rows.length) return '';
+
+  const renderCell = (cell: string, tag: 'th' | 'td') => `<${tag}>${formatInlineMarkdown(cell)}</${tag}>`;
+  return [
+    '<div class="md-table-wrap"><table class="md-table">',
+    `<thead><tr>${header.map((cell) => renderCell(cell, 'th')).join('')}</tr></thead>`,
+    `<tbody>${rows.map((row) => `<tr>${header.map((_, index) => renderCell(row[index] ?? '', 'td')).join('')}</tr>`).join('')}</tbody>`,
+    '</table></div>',
+  ].join('');
 }
 
 function formatInlineMarkdown(text: string): string {

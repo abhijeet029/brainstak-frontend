@@ -15,14 +15,6 @@
             </div>
           </form>
         } @else {
-          @if (!isUser()) {
-            <div class="message-header">
-            <button type="button" class="response-copy-btn" (click)="copyResponse()">
-              <i class="bi" [class.bi-copy]="!responseCopied()" [class.bi-check2]="responseCopied()"></i>
-              <span>{{ responseCopied() ? 'Copied response' : 'Copy response' }}</span>
-            </button>
-            </div>
-          }
         @if (!isUser() && usedContext.length > 0) {
           <div class="rag-context" [class.expanded]="contextExpanded()">
             <button type="button" class="rag-toggle" (click)="contextExpanded.set(!contextExpanded())">
@@ -42,7 +34,7 @@
             }
           </div>
         }
-        <div class="message-body">
+        <div class="message-body" [class.streaming-typewriter]="isStreamingAssistant()">
           @for (block of visibleBlocks(); track $index) {
             @if (block.type === 'text') {
               <div class="text-block" [innerHTML]="block.html"></div>
@@ -73,43 +65,108 @@
             </button>
           </div>
         }
-        @if (llmLabel(); as label) {
-          <div class="llm-meta-row">
-            <div class="llm-meta">
-              <i class="bi bi-cpu"></i>
-              <span>Answered by <strong>{{ label }}</strong></span>
+        @if (!isStreamingAssistant() && llmLabel(); as label) {
+          <div class="assistant-toolbar">
+            <div class="assistant-toolbar-left">
+              <button
+                type="button"
+                class="assistant-icon-btn"
+                [title]="responseCopied() ? 'Copied' : 'Copy response'"
+                (click)="copyResponse()"
+              >
+                <i class="bi" [class.bi-copy]="!responseCopied()" [class.bi-check2]="responseCopied()"></i>
+              </button>
+              <button
+                type="button"
+                class="assistant-icon-btn"
+                title="Regenerate response"
+                (click)="regenerateCurrentResponse()"
+              >
+                <i class="bi bi-arrow-clockwise"></i>
+              </button>
             </div>
-            @if (preferChip) {
-              <button
-                type="button"
-                class="prefer-model-chip"
-                (click)="preferModel.emit(preferChip)"
-                title="Pin this model for all further replies in this chat"
-              >
-                <i class="bi bi-pin-fill"></i>
-                Prefer {{ preferChip.modelLabel }} for next responses
-              </button>
-            }
-          </div>
-        }
-        @if (alternateModels().length) {
-          <div class="model-checks" aria-label="Check response with another model">
-            @for (model of alternateModels(); track model.id) {
-              <button
-                type="button"
-                class="model-check-chip"
-                [class.checking]="isCheckingModel(model.id)"
-                [disabled]="isCheckDisabled(model.id)"
-                (click)="checkModel.emit({ assistantMessageId: message.id, model: model.id, modelLabel: model.label, intelligence: responseIntelligence() })"
-              >
-                @if (isCheckingModel(model.id)) {
-                  <span class="chip-spinner" aria-hidden="true"></span>
-                  Checking with {{ model.label }}...
-                } @else {
-                  Check response from {{ model.label }}
+
+            <div class="assistant-toolbar-right">
+              <div class="model-menu-wrap">
+                <button
+                  type="button"
+                  class="llm-meta model-menu-trigger"
+                  [class.open]="modelMenuOpen()"
+                  (click)="toggleModelMenu()"
+                  aria-haspopup="menu"
+                  [attr.aria-expanded]="modelMenuOpen()"
+                >
+                  <i class="bi bi-cpu"></i>
+                  <span>Answered by <strong>{{ label }}</strong></span>
+                  <i class="bi bi-chevron-down model-menu-caret"></i>
+                </button>
+                @if (modelMenuOpen()) {
+                  <div class="model-menu model-menu-right" role="menu">
+                    @if (alternateModels().length) {
+                      <div class="model-menu-title">Check response from</div>
+                      @for (model of alternateModels(); track model.id) {
+                        <button
+                          type="button"
+                          class="model-menu-item"
+                          [class.checking]="isCheckingModel(model.id)"
+                          [disabled]="isCheckDisabled(model.id)"
+                          (click)="checkWithModel(model)"
+                          role="menuitem"
+                        >
+                          @if (isCheckingModel(model.id)) {
+                            <span class="chip-spinner" aria-hidden="true"></span>
+                            <span>Checking with {{ model.label }}...</span>
+                          } @else {
+                            <i class="bi bi-arrow-repeat"></i>
+                            <span>Check response from {{ model.label }}</span>
+                          }
+                        </button>
+                      }
+                    }
+                  </div>
                 }
-              </button>
-            }
+              </div>
+
+              @if (hasFollowUps()) {
+                <div class="suggestion-menu-wrap">
+                  <button
+                    type="button"
+                    class="llm-meta suggestion-menu-trigger"
+                    [class.open]="suggestionMenuOpen()"
+                    (click)="toggleSuggestionMenu()"
+                    aria-haspopup="menu"
+                    [attr.aria-expanded]="suggestionMenuOpen()"
+                  >
+                    <i class="bi bi-lightbulb"></i>
+                    <span>Suggestions</span>
+                    <i class="bi bi-chevron-down model-menu-caret"></i>
+                  </button>
+                  @if (suggestionMenuOpen()) {
+                    <div class="model-menu suggestion-menu" role="menu">
+                      <div class="model-menu-title">Try next</div>
+                      @for (item of followUps; track item) {
+                        <button type="button" class="model-menu-item" (click)="useSuggestion(item)" role="menuitem">
+                          <i class="bi bi-arrow-return-right"></i>
+                          <span>{{ item }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              @if (preferChip) {
+                <button
+                  type="button"
+                  class="prefer-model-chip"
+                  (click)="preferModel.emit(preferChip)"
+                  title="Pin this model for all further replies in this chat"
+                >
+                  <i class="bi bi-pin-fill"></i>
+                  Prefer {{ preferChip.modelLabel }} for next responses
+                </button>
+              }
+            </div>
           </div>
         }
         @if (tokenMeta) {
@@ -303,13 +360,6 @@
                   }
                 </div>
               </aside>
-            }
-          </div>
-        }
-        @if (hasFollowUps()) {
-          <div class="followups">
-            @for (item of followUps; track item) {
-              <button type="button" class="followup-chip" (click)="useFollowUp.emit(item)">{{ item }}</button>
             }
           </div>
         }

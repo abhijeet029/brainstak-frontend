@@ -34,17 +34,19 @@ export class NewProjectModalComponent {
   private readonly toast = inject(ToastService);
 
   readonly fsSupported = fsAccessSupported();
-  readonly step = signal<Step>('choose');
+  readonly step = signal<Step>('name');
   readonly error = signal<string | null>(null);
-  readonly pendingFlow = signal<PendingFlow>(null);
+  readonly pendingFlow = signal<PendingFlow>('scratch');
   readonly isCreating = signal(false);
+  readonly advancedOpen = signal(false);
   projectNameDraft = '';
 
   reset() {
-    this.step.set('choose');
+    this.step.set('name');
     this.error.set(null);
-    this.pendingFlow.set(null);
+    this.pendingFlow.set('scratch');
     this.isCreating.set(false);
+    this.advancedOpen.set(false);
     this.projectNameDraft = '';
   }
 
@@ -53,7 +55,8 @@ export class NewProjectModalComponent {
       this.step.set('name');
       return;
     }
-    this.step.set('choose');
+    this.step.set('name');
+    this.pendingFlow.set('scratch');
   }
 
   onUseExisting() {
@@ -66,7 +69,7 @@ export class NewProjectModalComponent {
   onStartScratch() {
     this.error.set(null);
     this.pendingFlow.set('scratch');
-    this.projectNameDraft = this.nextProjectName('New project');
+    this.projectNameDraft = '';
     this.step.set('name');
   }
 

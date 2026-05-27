@@ -449,6 +449,46 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     });
   }
 
+  onRegenerateResponse(event: { assistantMessageId: string; model: string | null; modelLabel: string | null; intelligence: IntelligenceLevel }) {
+    if (this.chatSvc.sending()) return;
+    const list = this.messages();
+    const assistantIndex = list.findIndex((message) => message.id === event.assistantMessageId);
+    if (assistantIndex <= 0) {
+      this.toast.show('Could not find the prompt for this response.', 'error');
+      return;
+    }
+    const previousUser = [...list.slice(0, assistantIndex)].reverse().find((message) => message.role === 'user');
+    if (!previousUser) {
+      this.toast.show('Could not find the prompt for this response.', 'error');
+      return;
+    }
+
+    if (this.chatSvc.temporaryMode()) {
+      this.chatSvc.truncateTemporaryFrom(previousUser.id);
+      if (isModelCheckMessage(previousUser.content) && event.model && event.modelLabel) {
+        this.activeModelCheck.set({ assistantMessageId: event.assistantMessageId, model: event.model, modelLabel: event.modelLabel });
+      }
+      this.sendTemporary(previousUser.content, event.model ?? undefined, event.intelligence);
+      return;
+    }
+
+    const chatId = this.chatSvc.activeChatId();
+    if (!chatId) {
+      this.toast.show('Could not find the active chat.', 'error');
+      return;
+    }
+
+    this.chatSvc.truncateFromMessage(chatId, previousUser.id).subscribe({
+      next: () => {
+        if (isModelCheckMessage(previousUser.content) && event.model && event.modelLabel) {
+          this.activeModelCheck.set({ assistantMessageId: event.assistantMessageId, model: event.model, modelLabel: event.modelLabel });
+        }
+        this.sendToChat(chatId, previousUser.content, event.model ?? undefined, event.intelligence);
+      },
+      error: (e) => this.toast.show(e?.error?.error ?? 'Could not regenerate response', 'error'),
+    });
+  }
+
   onCheckModel(event: { assistantMessageId: string; model: string; modelLabel: string; intelligence: IntelligenceLevel }) {
     if (this.chatSvc.sending()) return;
     const list = this.messages();
