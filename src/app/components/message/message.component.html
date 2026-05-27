@@ -76,32 +76,35 @@
               >
                 <i class="bi" [class.bi-copy]="!responseCopied()" [class.bi-check2]="responseCopied()"></i>
               </button>
-              <button
-                type="button"
-                class="assistant-icon-btn"
-                title="Regenerate response"
-                (click)="regenerateCurrentResponse()"
+              <div
+                class="icon-tooltip-wrap"
               >
-                <i class="bi bi-arrow-clockwise"></i>
-              </button>
-            </div>
-
-            <div class="assistant-toolbar-right">
+                <button
+                  type="button"
+                  class="assistant-icon-btn"
+                  (click)="regenerateCurrentResponse()"
+                >
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <div class="regenerate-tooltip" role="tooltip">
+                  <div class="regenerate-tooltip-title">Try again...</div>
+                  <div class="regenerate-tooltip-sub">Used {{ regenerateTooltipModelLabel() }}</div>
+                </div>
+              </div>
               <div class="model-menu-wrap">
                 <button
                   type="button"
-                  class="llm-meta model-menu-trigger"
-                  [class.open]="modelMenuOpen()"
+                  class="assistant-icon-btn"
+                  [class.active]="modelMenuOpen()"
                   (click)="toggleModelMenu()"
                   aria-haspopup="menu"
                   [attr.aria-expanded]="modelMenuOpen()"
+                  title="Choose model"
                 >
-                  <i class="bi bi-cpu"></i>
-                  <span>Answered by <strong>{{ label }}</strong></span>
-                  <i class="bi bi-chevron-down model-menu-caret"></i>
+                  <i class="bi bi-gear"></i>
                 </button>
                 @if (modelMenuOpen()) {
-                  <div class="model-menu model-menu-right" role="menu">
+                  <div class="model-menu" role="menu">
                     @if (alternateModels().length) {
                       <div class="model-menu-title">Check response from</div>
                       @for (model of alternateModels(); track model.id) {
@@ -126,6 +129,10 @@
                   </div>
                 }
               </div>
+            </div>
+
+            <div class="assistant-toolbar-right">
+              <!-- <span class="llm-meta"><i class="bi bi-cpu"></i>Answered by <strong>{{ label }}</strong></span> -->
 
               @if (hasFollowUps()) {
                 <div class="suggestion-menu-wrap">

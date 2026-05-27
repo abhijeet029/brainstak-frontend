@@ -36,12 +36,13 @@ export class LoginComponent implements OnInit {
         use_fedcm_for_prompt: true,
       });
 
-      const isDark = this.themeSvc.theme() === 'dark';
-      const buttonWidth = Math.min(window.innerWidth - 64, window.innerWidth >= 960 ? 430 : 350);
+      const buttonWidth = Math.min(window.innerWidth - 64, 460);
       google.accounts.id.renderButton(this.gbtn.nativeElement, {
-        theme: isDark ? 'filled_black' : 'outline',
+        theme: 'outline',
+        type: 'standard',
         size: 'large',
         shape: 'pill',
+        logo_alignment: 'left',
         text: 'continue_with',
         width: Math.max(320, buttonWidth),
       });

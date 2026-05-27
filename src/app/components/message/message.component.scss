@@ -264,8 +264,9 @@
 .model-menu {
   position: absolute;
   left: 0;
-  top: calc(100% + 7px);
-  z-index: 30;
+  bottom: calc(100% + 7px);
+  top: auto;
+  z-index: 120;
   width: min(260px, 82vw);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -324,9 +325,61 @@
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
+.assistant-icon-btn.active {
+  background: var(--bg-elev);
+  color: var(--text-primary);
+}
 .assistant-icon-btn:hover {
   background: var(--bg-elev);
   color: var(--text-primary);
+}
+.icon-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.icon-tooltip-wrap:focus-within .regenerate-tooltip,
+.icon-tooltip-wrap:hover .regenerate-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.regenerate-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  background: #0b0b0c;
+  color: #fff;
+  border-radius: 14px;
+  padding: 9px 12px 10px;
+  min-width: 160px;
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.34);
+  z-index: 130;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease, transform 0.12s ease, visibility 0.12s ease;
+}
+.regenerate-tooltip::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: #0b0b0c;
+}
+.regenerate-tooltip-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.regenerate-tooltip-sub {
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.25;
+  opacity: 0.88;
 }
 .llm-meta strong {
   font-weight: 700;

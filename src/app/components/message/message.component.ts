@@ -235,6 +235,10 @@ export class MessageComponent implements OnChanges {
     });
   }
 
+  regenerateTooltipModelLabel() {
+    return this.currentModelLabel() ?? this.message.model ?? 'Current model';
+  }
+
   toggleSuggestionMenu() {
     if (!this.hasFollowUps()) return;
     this.suggestionMenuOpen.set(!this.suggestionMenuOpen());
@@ -593,6 +597,16 @@ function formatTextBlock(text: string): string {
     }
 
     if (tableBuffer.length) flushTable();
+
+    const headingLine = trimmedLine.match(/^(#{1,4})\s+(.+)$/);
+    if (headingLine) {
+      flushParagraph();
+      flushList();
+      flushTable();
+      const level = Math.min(4, headingLine[1]!.length);
+      parts.push(`<h${level}>${formatInlineMarkdown(headingLine[2]!.trim())}</h${level}>`);
+      continue;
+    }
 
     const bulletMatch = trimmedLine.match(/^[-*+]\s+(?:\[[ xX]\]\s*)?(.+)$/);
     const orderedMatch = trimmedLine.match(/^\d+\.\s+(.+)$/);
