@@ -309,6 +309,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   onSend(text: string) {
+    if (this.chatSvc.sending()) return;
     const pinnedModel = this.preferredModel()?.model;
     if (this.chatSvc.temporaryMode()) {
       this.sendTemporary(text, pinnedModel);

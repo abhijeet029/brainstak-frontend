@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { finalize, tap } from 'rxjs';
+import { finalize, tap, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Chat, ChatMessage, IntelligenceLevel, ProposedChange, SendResponse, UsedContext } from './models';
 import { PROJECT_PROPOSED_CHANGES_ENABLED } from './feature-flags';
@@ -125,6 +125,9 @@ export class ChatService {
   }
 
   send(chatId: string, message: string, intelligence: IntelligenceLevel = 'low', model?: string, displayMessage?: string) {
+    if (this.sending()) {
+      return throwError(() => new Error('A message is already being sent'));
+    }
     this.sending.set(true);
     const visibleMessage = displayMessage ?? message;
     const existingOptimistic = this.messages().find((m) =>
@@ -377,6 +380,9 @@ export class ChatService {
   }
 
   sendTemporary(displayMessage: string, intelligence: IntelligenceLevel = 'low', model?: string, message = displayMessage) {
+    if (this.sending()) {
+      return throwError(() => new Error('A message is already being sent'));
+    }
     this.sending.set(true);
     const chatId = 'temporary';
     const history = this.messages()
@@ -487,9 +493,19 @@ export class ChatService {
       });
     const hasAssistant = mapped.some((m) => m.id === assistant.id || m.clientKey === assistant.clientKey);
     const withAssistant = hasAssistant ? mapped : [...mapped, assistant];
-    const hasUser = savedUser ? withAssistant.some((m) => m.id === savedUser.id) : true;
-    const finalMessages = savedUser && !hasUser ? [...withAssistant, savedUser] : withAssistant;
-    this.messages.set(finalMessages);
+    const hasUser = savedUser ? withAssistant.some((m) => m.id === savedUser.id || m.clientKey === savedUser.clientKey) : true;
+    if (savedUser && !hasUser) {
+      const assistantIdx = withAssistant.findIndex((m) => m.id === assistant.id || m.clientKey === assistant.clientKey);
+      if (assistantIdx >= 0) {
+        const next = [...withAssistant];
+        next.splice(assistantIdx, 0, savedUser);
+        this.messages.set(dedupeTailMessages(next));
+      } else {
+        this.messages.set(dedupeTailMessages([...withAssistant, savedUser]));
+      }
+    } else {
+      this.messages.set(dedupeTailMessages(withAssistant));
+    }
 
     const list = this.chats();
     const idx = list.findIndex((c) => c.id === chatId);
@@ -712,4 +728,24 @@ function titleCaseStatus(status: string) {
 
 function normalizeMessageContent(value: string) {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+function dedupeTailMessages(list: ChatMessage[]): ChatMessage[] {
+  if (list.length <= 1) return list;
+  const out: ChatMessage[] = [];
+  for (const msg of list) {
+    const prev = out[out.length - 1];
+    if (!prev) {
+      out.push(msg);
+      continue;
+    }
+    if (msg.role === prev.role && normalizeMessageContent(msg.content) === normalizeMessageContent(prev.content)) {
+      // Prefer persisted IDs over temporary IDs to avoid visual flicker.
+      const keepCurrent = prev.id.startsWith('tmp-') && !msg.id.startsWith('tmp-');
+      if (keepCurrent) out[out.length - 1] = msg;
+      continue;
+    }
+    out.push(msg);
+  }
+  return out;
 }

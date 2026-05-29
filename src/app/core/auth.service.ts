@@ -21,9 +21,9 @@ export class AuthService {
 
   /** Try to load the current session on app start. */
   bootstrap() {
-    return from(this.encryption.init()).pipe(
-      switchMap(() => this.http.get<{ user: User }>(`${this.base}/auth/me`)),
+    return this.http.get<{ user: User }>(`${this.base}/auth/me`).pipe(
       tap((res) => this.user.set(res?.user ?? null)),
+      tap(() => { void this.encryption.init(); }),
       catchError(() => {
         this.user.set(null);
         return of(null);
@@ -82,9 +82,9 @@ export class AuthService {
   /** One-shot check used by the route guard. */
   ensureSession() {
     if (this.user()) return of(true);
-    return from(this.encryption.init()).pipe(
-      switchMap(() => this.http.get<{ user: User }>(`${this.base}/auth/me`)),
+    return this.http.get<{ user: User }>(`${this.base}/auth/me`).pipe(
       tap((res) => this.user.set(res.user)),
+      tap(() => { void this.encryption.init(); }),
       map(() => true),
       catchError(() => of(false)),
     );

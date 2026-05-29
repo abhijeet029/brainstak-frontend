@@ -136,6 +136,7 @@ export class MessageComponent implements OnChanges {
   readonly modelMenuOpen = signal(false);
   readonly suggestionMenuOpen = signal(false);
   readonly editing = signal(false);
+  readonly showFullResponse = signal(false);
   editDraft = '';
   private lastMessageId: string | null = null;
 
@@ -177,6 +178,7 @@ export class MessageComponent implements OnChanges {
     if (messageChanged) {
       this.modelMenuOpen.set(false);
       this.suggestionMenuOpen.set(false);
+      this.showFullResponse.set(false);
     }
   }
 
@@ -190,6 +192,19 @@ export class MessageComponent implements OnChanges {
     if (!this.hasProposedChanges()) return blocks;
     return blocks.filter((block) => block.type !== 'code' || !block.path);
   };
+  responseViewMode = (): 'full' | 'concise' | 'code_safe' => {
+    if (this.isUser() || this.isStreamingAssistant()) return 'full';
+    const text = this.message.content ?? '';
+    if (isCodeSafeResponse(text)) return 'code_safe';
+    const lines = text.split('\n').length;
+    const chars = text.length;
+    const estTokens = estimateTokens(text);
+    const isLong = lines > 80 || estTokens > 1200 || chars > 6000;
+    return isLong ? 'concise' : 'full';
+  };
+  shouldShowConcise = () => this.responseViewMode() === 'concise' && !this.showFullResponse();
+  conciseHtml = () => formatTextBlock(buildConciseSummary(this.message.content ?? ''));
+  conciseSuggestions = () => suggestionsForIntent(this.message.content ?? '');
   llmLabel = () => {
     if (this.isUser() || !this.message.model) return null;
     const provider = inferProvider(this.message.model);
@@ -355,6 +370,14 @@ export class MessageComponent implements OnChanges {
     if (this.isUser()) return;
     const value: 'like' | 'dislike' | null = this.feedbackType === next ? null : next;
     this.feedbackChange.emit({ messageId: this.message.id, feedbackType: value });
+  }
+
+  openFullResponse() {
+    this.showFullResponse.set(true);
+  }
+
+  useConciseSuggestion(text: string) {
+    this.useFollowUp.emit(text);
   }
 }
 
@@ -709,6 +732,75 @@ function trimCodeBlock(code: string): string {
 function normalizeLanguage(language: string): string | null {
   const clean = language.trim().replace(/[^a-zA-Z0-9#+._-]/g, '');
   return clean || null;
+}
+
+function estimateTokens(text: string): number {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return Math.round(words * 1.3);
+}
+
+function isCodeSafeResponse(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  if (/```/.test(t)) return true;
+  if (/^\s*[{[][\s\S]*[}\]]\s*$/.test(t)) return true;
+  if (/\b(select|insert|update|delete|create table|alter table|drop table)\b/i.test(t)) return true;
+  return false;
+}
+
+function buildConciseSummary(text: string): string {
+  const normalized = text.replace(/\r\n/g, '\n').trim();
+  if (!normalized) return '';
+  const lines = normalized.split('\n').map((line) => line.trimEnd());
+  const cleanLines = lines.filter((line) => !/^#{1,6}\s*related questions?/i.test(line.trim()));
+  const paragraphs = cleanLines.join('\n').split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const intro = paragraphs[0] ?? '';
+
+  const bulletLines = cleanLines
+    .map((line) => line.trim())
+    .filter((line) => /^([-*]|\d+\.)\s+/.test(line))
+    .slice(0, 5);
+
+  const keyPoints = bulletLines.length
+    ? bulletLines
+    : paragraphs
+        .slice(1)
+        .flatMap((p) => p.split('\n'))
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .slice(0, 4)
+        .map((line) => `- ${line.replace(/^[-*]\s+/, '')}`);
+
+  const out: string[] = [];
+  if (intro) out.push(`### Short answer\n${truncateAtSentence(intro, 320)}`);
+  if (keyPoints.length) out.push(`### Key points\n${keyPoints.join('\n')}`);
+  out.push(`### Recommended next step\nTell me if you want a focused deep-dive and I’ll continue from here.`);
+  return out.join('\n\n');
+}
+
+function truncateAtSentence(text: string, max = 320): string {
+  if (text.length <= max) return text;
+  const slice = text.slice(0, max);
+  const lastStop = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf('? '), slice.lastIndexOf('! '));
+  if (lastStop > 80) return `${slice.slice(0, lastStop + 1).trim()}`;
+  return `${slice.trimEnd()}…`;
+}
+
+function suggestionsForIntent(text: string): string[] {
+  const lower = text.toLowerCase();
+  if (/\b(code|function|api|node|express|typescript|python|sql|debug|error)\b/.test(lower)) {
+    return ['Generate full code', 'Explain step by step', 'Optimize this approach'];
+  }
+  if (/\b(architecture|system|design|flow|database|schema|backend|frontend)\b/.test(lower)) {
+    return ['Show architecture flow', 'Create DB schema', 'Give implementation plan'];
+  }
+  if (/\b(image|ui|design|layout|figma|mockup)\b/.test(lower)) {
+    return ['Generate prompt', 'Create UI layout', 'Make it production ready'];
+  }
+  if (/\b(trip|travel|itinerary|vacation|holiday)\b/.test(lower)) {
+    return ['Build day-wise plan', 'Add budget breakdown', 'Suggest kid-friendly options'];
+  }
+  return ['Expand with examples', 'Summarize in 5 bullets', 'Give action checklist'];
 }
 
 function escapeHtml(text: string): string {

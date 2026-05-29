@@ -32,10 +32,10 @@ const API_BASE = environment.apiUrl;
 /**
  * Routes that must be passed through without any encryption/signing:
  *  - Key-exchange bootstrap endpoints (no session exists yet)
- *  - Public login endpoint. Authenticated auth endpoints such as /auth/me and
- *    logout still need signing because the backend protects them.
+ *  - Auth endpoints rely on secure session cookie auth and should not block on
+ *    encryption handshake readiness.
  */
-const SKIP_PATHS = ['/session/key', '/session/init', '/auth/google'];
+const SKIP_PATHS = ['/session/key', '/session/init', '/auth/google', '/auth/me', '/auth/logout', '/auth/logout-all'];
 
 export const encryptionInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,

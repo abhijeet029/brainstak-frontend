@@ -98,7 +98,7 @@
 }
 .message-author { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
 .message-body {
-  font-size: 16.5px;
+  font-size: 15px;
   line-height: 1.7;
   color: var(--text-primary);
   word-wrap: break-word;
@@ -454,10 +454,49 @@
 .code-block + .code-block {
   margin-top: 14px;
 }
+.concise-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.expand-full-btn {
+  width: fit-content;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  line-height: 1;
+  cursor: pointer;
+}
+.expand-full-btn:hover {
+  background: var(--bg-elev);
+  color: var(--text-primary);
+}
+.concise-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.concise-chip {
+  border: 1px solid var(--response-chip-border);
+  background: var(--response-chip-bg);
+  color: var(--response-chip-text);
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.concise-chip:hover {
+  background: color-mix(in srgb, var(--response-chip-bg) 72%, var(--bg-hover) 28%);
+}
 .message-body ::ng-deep p {
   margin: 0 0 13px;
-  font-size: 16px;
-  line-height: 1.72;
+  font-size: 17px;
+  line-height: 1.68;
 }
 .message-body ::ng-deep p:last-child {
   margin-bottom: 0;
@@ -472,8 +511,8 @@
   font-weight: 750;
 }
 .message-body ::ng-deep h1 { font-size: 30px; margin-top: 24px; }
-.message-body ::ng-deep h2 { font-size: 24px; margin-top: 22px; }
-.message-body ::ng-deep h3 { font-size: 19px; margin-top: 18px; }
+.message-body ::ng-deep h2 { font-size: 36px; margin-top: 22px; }
+.message-body ::ng-deep h3 { font-size: 27px; margin-top: 18px; }
 .message-body ::ng-deep h4 { font-size: 14px; }
 .message-body ::ng-deep .md-hr {
   border: 0;
@@ -643,7 +682,7 @@
   padding: 16px 18px 18px;
   overflow-x: auto;
   font-size: 13px;
-  line-height: 1.65;
+  line-height: 1.62;
   color: var(--code-text);
 }
 .code-block code {

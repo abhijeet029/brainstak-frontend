@@ -137,7 +137,7 @@
                 <app-message
                   [message]="m"
                   [userInitial]="userInitial()"
-                  [followUps]="chatSvc.getFollowUps(m.id)"
+                  [followUps]="[]"
                   [downgradeNote]="chatSvc.getDowngradeNote(m.id)"
                   [tokenMeta]="chatSvc.getTokenMeta(m.id)"
                   [feedbackType]="m.feedbackType ?? null"

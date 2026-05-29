@@ -35,29 +35,43 @@
           </div>
         }
         <div class="message-body" [class.streaming-typewriter]="isStreamingAssistant()">
-          @for (block of visibleBlocks(); track $index) {
-            @if (block.type === 'text') {
-              <div class="text-block" [innerHTML]="block.html"></div>
-            } @else {
-              <section class="code-block" [class.file-block]="!!block.path">
-                <header class="code-toolbar">
-                  @if (block.path) {
-                    <div class="code-path-wrap">
-                      <span class="code-path"><i class="bi bi-file-earmark-code"></i>&nbsp;{{ block.path }}</span>
-                    </div>
-                  } @else {
-                    <span class="code-language">{{ block.language || 'code' }}</span>
-                  }
-                  <button type="button" class="copy-btn" (click)="copyCode(block.code, $index)">
-                    <i class="bi" [class.bi-copy]="copiedIndex() !== $index" [class.bi-check2]="copiedIndex() === $index"></i>
-                    <span>{{ copiedIndex() === $index ? 'Copied' : 'Copy' }}</span>
-                  </button>
-                </header>
-                <pre><code [innerHTML]="block.highlightedHtml"></code></pre>
-              </section>
+          @if (shouldShowConcise()) {
+            <div class="text-block" [innerHTML]="conciseHtml()"></div>
+          } @else {
+            @for (block of visibleBlocks(); track $index) {
+              @if (block.type === 'text') {
+                <div class="text-block" [innerHTML]="block.html"></div>
+              } @else {
+                <section class="code-block" [class.file-block]="!!block.path">
+                  <header class="code-toolbar">
+                    @if (block.path) {
+                      <div class="code-path-wrap">
+                        <span class="code-path"><i class="bi bi-file-earmark-code"></i>&nbsp;{{ block.path }}</span>
+                      </div>
+                    } @else {
+                      <span class="code-language">{{ block.language || 'code' }}</span>
+                    }
+                    <button type="button" class="copy-btn" (click)="copyCode(block.code, $index)">
+                      <i class="bi" [class.bi-copy]="copiedIndex() !== $index" [class.bi-check2]="copiedIndex() === $index"></i>
+                      <span>{{ copiedIndex() === $index ? 'Copied' : 'Copy' }}</span>
+                    </button>
+                  </header>
+                  <pre><code [innerHTML]="block.highlightedHtml"></code></pre>
+                </section>
+              }
             }
           }
         </div>
+        @if (shouldShowConcise()) {
+          <div class="concise-actions">
+            <button type="button" class="expand-full-btn" (click)="openFullResponse()">Expand full response</button>
+            <div class="concise-suggestions">
+              @for (item of conciseSuggestions(); track item) {
+                <button type="button" class="concise-chip" (click)="useConciseSuggestion(item)">{{ item }}</button>
+              }
+            </div>
+          </div>
+        }
         @if (isUser()) {
           <div class="message-header">
             <button type="button" class="message-action-btn" title="Edit and resend" (click)="startEdit()">
@@ -152,6 +166,7 @@
             <div class="assistant-toolbar-right">
               <!-- <span class="llm-meta"><i class="bi bi-cpu"></i>Answered by <strong>{{ label }}</strong></span> -->
 
+              <!-- Suggestions disabled for now.
               @if (hasFollowUps()) {
                 <div class="suggestion-menu-wrap">
                   <button
@@ -179,6 +194,7 @@
                   }
                 </div>
               }
+              -->
 
               @if (preferChip) {
                 <button
