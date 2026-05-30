@@ -79,7 +79,7 @@
             </button>
           </div>
         }
-        @if (!isStreamingAssistant() && llmLabel(); as label) {
+        @if (!isStreamingAssistant() && !isGeneratedImageResponse() && llmLabel(); as label) {
           <div class="assistant-toolbar">
             <div class="assistant-toolbar-left">
               <button
@@ -210,10 +210,10 @@
             </div>
           </div>
         }
-        @if (tokenMeta) {
+        @if (!isGeneratedImageResponse() && tokenMeta) {
           <div class="token-meta">{{ tokenMeta }}</div>
         }
-        @if (downgradeNote) {
+        @if (!isGeneratedImageResponse() && downgradeNote) {
           <div class="downgrade-note">
             <i class="bi bi-sliders"></i>
             <span>{{ downgradeNote }}</span>

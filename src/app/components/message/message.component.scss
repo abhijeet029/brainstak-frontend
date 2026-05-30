@@ -122,6 +122,23 @@
   padding: 12px 16px;
   box-shadow: none;
 }
+
+:host ::ng-deep .generated-image-link {
+  display: inline-block;
+  margin-top: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+:host ::ng-deep .generated-image-thumbnail {
+  display: block;
+  width: min(360px, 100%);
+  height: auto;
+  max-height: 360px;
+  object-fit: cover;
+}
 .streaming-typewriter::after {
   content: '';
   display: inline-block;

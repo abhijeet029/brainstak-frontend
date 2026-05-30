@@ -256,6 +256,13 @@ export class MessageComponent implements OnChanges {
     return this.currentModelLabel() ?? this.message.model ?? 'Current model';
   }
 
+  isGeneratedImageResponse(): boolean {
+    if (this.isUser()) return false;
+    const content = this.message.content ?? '';
+    return /!\[[^\]]*generated image[^\]]*\]\((https?:\/\/[^)]+)\)/i.test(content)
+      || /!\[[^\]]*\]\((https?:\/\/[^)]+)\)/i.test(content) && /generated image/i.test(content);
+  }
+
   toggleSuggestionMenu() {
     if (!this.hasFollowUps()) return;
     this.suggestionMenuOpen.set(!this.suggestionMenuOpen());
@@ -702,6 +709,21 @@ function formatMarkdownTable(lines: string[]): string {
 
 function formatInlineMarkdown(text: string): string {
   let output = escapeHtml(text);
+
+  // Render markdown images inline as thumbnails.
+  output = output.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    (_, alt: string, url: string) => {
+      const safeUrl = url.trim();
+      if (!/^https?:\/\//i.test(safeUrl)) return '';
+      const safeAlt = alt?.trim() || 'Generated image';
+      return [
+        `<a class="generated-image-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">`,
+        `<img class="generated-image-thumbnail" src="${safeUrl}" alt="${safeAlt}" loading="lazy" />`,
+        '</a>',
+      ].join('');
+    },
+  );
 
   output = output.replace(/`([^`]+)`/g, (_, code: string) => `<code class="inline-code">${code}</code>`);
   output = output.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
