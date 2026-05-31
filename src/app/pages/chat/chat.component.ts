@@ -126,22 +126,22 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     const options: IntelligenceOption[] = [
       {
         value: 'low',
-        label: 'Low',
+        label: 'Fast',
         enabled: true,
         models: 'Gemini Flash, Mistral Small, DeepSeek Chat',
       },
       {
         value: 'medium',
-        label: 'Medium',
+        label: 'Auto',
         enabled: mediumEnabled,
-        reason: mediumAllowedByTier ? 'Needs more remaining quota' : 'Available on Pro and Team',
+        reason: mediumAllowedByTier ? 'Needs more remaining quota' : 'Auto mode is available on Pro and Team',
         models: 'Gemini Flash, Claude Haiku, DeepSeek R1, GPT-4.1 Mini',
       },
       {
         value: 'high',
-        label: 'High',
+        label: 'Deep',
         enabled: highEnabled,
-        reason: highAllowedByTier ? 'Needs more remaining quota' : 'Available on Team',
+        reason: highAllowedByTier ? 'Needs more remaining quota' : 'Deep mode is available on Team',
         models: 'Claude Sonnet, Claude Haiku, Gemini Flash, GPT-4.1 Mini',
       },
     ];
@@ -156,6 +156,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   private resumePollTimer: ReturnType<typeof setTimeout> | null = null;
   private resumePollSub: Subscription | null = null;
   private resumePollAttempts = 0;
+  private readonly preferredModelStoragePrefix = 'hub:preferred-model:';
 
   ngOnInit() {
     forkJoin({
@@ -533,6 +534,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   onPreferModel(event: { model: string; modelLabel: string }) {
     this.preferredModel.set(event);
+    this.savePreferredModelForActiveChat(event);
+    this.toast.show(`Preferring ${event.modelLabel} for this chat.`, 'success');
   }
 
   onFeedbackChange(event: { messageId: string; feedbackType: 'like' | 'dislike' | null }) {
@@ -549,6 +552,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   clearPreferredModel() {
     this.preferredModel.set(null);
+    this.clearPreferredModelForActiveChat();
   }
 
   /** Called when the user clicks "Allow folder access" in the inline permission card. */
@@ -569,7 +573,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
   private openChat(chatId: string) {
     if (this.chatSvc.temporaryMode()) this.chatSvc.setTemporaryMode(false);
-    this.preferredModel.set(null);
+    this.preferredModel.set(this.loadPreferredModelForChat(chatId));
     this.checkResponseMap.set(new Map());
     this.chatSvc.selectChat(chatId).subscribe(() => {
       const chat = this.chatSvc.chats().find((item) => item.id === chatId);
@@ -582,6 +586,42 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       this.maybeResumePendingResponse(chatId);
       this.shouldScrollToBottom = true;
     });
+  }
+
+  private preferredModelStorageKey(chatId: string) {
+    return `${this.preferredModelStoragePrefix}${chatId}`;
+  }
+
+  private loadPreferredModelForChat(chatId: string): { model: string; modelLabel: string } | null {
+    try {
+      const raw = localStorage.getItem(this.preferredModelStorageKey(chatId));
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { model?: unknown; modelLabel?: unknown };
+      if (typeof parsed.model !== 'string' || typeof parsed.modelLabel !== 'string') return null;
+      return { model: parsed.model, modelLabel: parsed.modelLabel };
+    } catch {
+      return null;
+    }
+  }
+
+  private savePreferredModelForActiveChat(model: { model: string; modelLabel: string }) {
+    const chatId = this.chatSvc.activeChatId();
+    if (!chatId) return;
+    try {
+      localStorage.setItem(this.preferredModelStorageKey(chatId), JSON.stringify(model));
+    } catch {
+      // Local persistence is a convenience only; in-memory preference still works.
+    }
+  }
+
+  private clearPreferredModelForActiveChat() {
+    const chatId = this.chatSvc.activeChatId();
+    if (!chatId) return;
+    try {
+      localStorage.removeItem(this.preferredModelStorageKey(chatId));
+    } catch {
+      // Ignore storage failures.
+    }
   }
 
   private showProjectHome(projectId: string) {

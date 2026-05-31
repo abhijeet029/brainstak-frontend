@@ -17,14 +17,14 @@
         <div class="priority-note">
           <i class="bi bi-info-circle"></i>
           <span>
-            Queries will use the order below for your active plan. If you do not save a custom order,
+            Queries will use the order below for each response mode in your active plan. If you do not save a custom order,
             Hub uses the owner default priority.
           </span>
         </div>
 
         @if (hiddenLevelText(); as hidden) {
           <div class="locked-note">
-            {{ hidden }} intelligence unlocks when your plan allows it.
+            {{ hidden }} response mode unlocks when your plan allows it.
           </div>
         }
 
@@ -43,7 +43,7 @@
               <section class="priority-card" [attr.aria-label]="group.label + ' model priority'">
                 <div class="priority-card-head">
                   <div>
-                    <div class="priority-label">{{ group.label }} intelligence</div>
+                    <div class="priority-label">{{ group.label }} response mode</div>
                     <div class="priority-status">
                       {{ group.custom ? 'Using your custom priority' : 'Using owner default priority' }}
                     </div>

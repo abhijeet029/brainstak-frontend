@@ -67,6 +67,7 @@
   min-width: 0;
   max-width: min(760px, 100%);
   padding-top: 2px;
+  overflow: hidden;
 }
 .message.user .message-content {
   width: auto;
@@ -102,6 +103,7 @@
   line-height: 1.7;
   color: var(--text-primary);
   word-wrap: break-word;
+  overflow-wrap: anywhere;
   background: linear-gradient(180deg, var(--chat-paper), rgba(255,255,255,0));
   border: 1px solid var(--chat-paper-border);
   border-radius: 18px;
@@ -514,6 +516,8 @@
   margin: 0 0 13px;
   font-size: 17px;
   line-height: 1.68;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .message-body ::ng-deep p:last-child {
   margin-bottom: 0;
@@ -552,6 +556,8 @@
   position: relative;
   margin: 0 0 7px;
   padding-left: 20px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .message-body ::ng-deep ul li::before {
   content: '';
@@ -610,6 +616,8 @@
 }
 .message-body ::ng-deep a {
   color: var(--link-color);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .message-body ::ng-deep code.inline-code {
   background: color-mix(in srgb, var(--code-bg) 84%, #111 16%);

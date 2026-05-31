@@ -361,9 +361,9 @@ export class ComposerComponent implements AfterViewInit, OnDestroy {
 
   defaultReason(level: IntelligenceLevel) {
     switch (level) {
-      case 'high':   return 'Best for harder reasoning and complex coding tasks.';
-      case 'medium': return 'Balanced reasoning depth with controlled quota usage.';
-      default:       return 'Preferred by default for speed, cost, and everyday questions.';
+      case 'high':   return 'Deep mode uses stronger reasoning for harder questions.';
+      case 'medium': return 'Auto mode balances quality, speed, and quota usage.';
+      default:       return 'Fast mode is best for speed, cost, and everyday questions.';
     }
   }
 
