@@ -185,6 +185,7 @@
 
           @if (isSectionOpen('recents')) {
             <div class="section-items">
+              <div class="section-meta">Chat token counts are all-time. Plan usage below is today.</div>
               @if (recentChats().length === 0) {
                 <div class="section-empty">No chats yet</div>
               } @else {

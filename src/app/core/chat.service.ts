@@ -200,7 +200,6 @@ export class ChatService {
           const updated = {
             ...list[idx]!,
             lastActive: new Date().toISOString(),
-            totalTokens: (list[idx]!.totalTokens ?? 0) + res.usage.tokens,
           };
           if (!updated.title) updated.title = message.slice(0, 60);
           this.chats.set([updated, ...list.filter((_, i) => i !== idx)]);
@@ -360,7 +359,9 @@ export class ChatService {
           doneResponse = payload as SendResponse;
         },
         error: (payload) => {
-          throw new Error(payload?.error ?? 'Stream failed');
+          const err = new Error(payload?.error ?? 'Stream failed') as Error & { code?: string };
+          if (typeof payload?.code === 'string') err.code = payload.code;
+          throw err;
         },
       });
 
@@ -546,7 +547,6 @@ export class ChatService {
       const updated = {
         ...list[idx]!,
         lastActive: new Date().toISOString(),
-        totalTokens: (list[idx]!.totalTokens ?? 0) + res.usage.tokens,
       };
       if (!updated.title) updated.title = message.slice(0, 60);
       this.chats.set([updated, ...list.filter((_, i) => i !== idx)]);

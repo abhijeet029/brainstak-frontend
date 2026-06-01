@@ -689,12 +689,19 @@ export class ChatComponent implements OnInit, AfterViewChecked {
               new Map([...map, [lastAssistant.id, { model: wasCheck.model, modelLabel: wasCheck.modelLabel }]]));
           }
         }
-        this.usage.applyAfterSend(res.usage.remainingTodayTokens);
+        this.usage.applyAfterSend(res.usage.remainingTodayTokens, res.usage.tokens);
+        this.usage.loadToday().pipe(catchError(() => of(null))).subscribe();
+        this.chatSvc.loadChats().pipe(catchError(() => of({ chats: [] }))).subscribe();
         this.shouldScrollToBottom = true;
       })
       .catch((e) => {
         this.activeModelCheck.set(null);
-        this.toast.show(e?.error?.message ?? e?.error?.error ?? e?.message ?? 'Send failed', 'error');
+        const code = e?.error?.code ?? e?.code;
+        const message = e?.error?.message ?? e?.error?.error ?? e?.message ?? 'Send failed';
+        if (code === 'DUPLICATE_MESSAGE_IN_PROGRESS' || /DUPLICATE_MESSAGE_IN_PROGRESS/i.test(String(message))) {
+          return;
+        }
+        this.toast.show(message, 'error');
       })
       .finally(() => {
         this.sendLocked = false;
@@ -715,7 +722,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
               new Map([...map, [lastAssistant.id, { model: wasCheck.model, modelLabel: wasCheck.modelLabel }]]));
           }
         }
-        this.usage.applyAfterSend(res.usage.remainingTodayTokens);
+        this.usage.applyAfterSend(res.usage.remainingTodayTokens, res.usage.tokens);
+        this.usage.loadToday().pipe(catchError(() => of(null))).subscribe();
         this.shouldScrollToBottom = true;
       },
       error: (e) => {

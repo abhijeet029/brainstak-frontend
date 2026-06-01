@@ -25,14 +25,17 @@ export class UsageService {
   }
 
   /** Apply a fresh remaining/used count after sending a message. */
-  applyAfterSend(remainingTokens: number) {
+  applyAfterSend(remainingTokens: number, usedTokensDelta?: number) {
     const t = this.today();
     if (!t) return;
-    const used = Math.max(0, t.cap - remainingTokens);
+    const usedFromRemaining = Math.max(0, t.cap - remainingTokens);
+    const used = typeof usedTokensDelta === 'number'
+      ? Math.max(0, t.tokens + Math.max(0, usedTokensDelta))
+      : usedFromRemaining;
     this.today.set({
       ...t,
       tokens: used,
-      remaining: remainingTokens,
+      remaining: Math.max(0, t.cap - used),
       pct: Math.min(100, Math.round((used / t.cap) * 100)),
     });
   }

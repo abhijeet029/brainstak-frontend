@@ -187,10 +187,10 @@ export class SidebarComponent {
 
   tokenLabel(chat: Chat): string {
     const total = chat.totalTokens ?? 0;
-    if (total <= 0) return '0 tokens';
-    if (total >= 1_000_000) return `${(total / 1_000_000).toFixed(total >= 10_000_000 ? 0 : 1)}M tokens`;
-    if (total >= 1_000) return `${(total / 1_000).toFixed(total >= 10_000 ? 0 : 1)}k tokens`;
-    return `${total.toLocaleString()} tokens`;
+    if (total <= 0) return '0 tokens (all-time)';
+    if (total >= 1_000_000) return `${(total / 1_000_000).toFixed(total >= 10_000_000 ? 0 : 1)}M tokens (all-time)`;
+    if (total >= 1_000) return `${(total / 1_000).toFixed(total >= 10_000 ? 0 : 1)}k tokens (all-time)`;
+    return `${total.toLocaleString()} tokens (all-time)`;
   }
 
   private isToday(iso: string): boolean {
