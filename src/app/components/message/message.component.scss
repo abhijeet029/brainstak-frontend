@@ -3,6 +3,9 @@
   display: flex;
   animation: msgIn 0.2s ease;
 }
+.message.action-menu-open {
+  margin-bottom: 178px;
+}
 .message.user {
   justify-content: flex-end;
 }
@@ -67,7 +70,7 @@
   min-width: 0;
   max-width: min(760px, 100%);
   padding-top: 2px;
-  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 .message.user .message-content {
   width: auto;
@@ -225,6 +228,11 @@
   // justify-content: space-between;
   gap: 6px;
   width: 100%;
+  position: relative;
+  z-index: 3;
+}
+.assistant-toolbar.menu-open {
+  margin-top: 8px;
 }
 .assistant-toolbar-left,
 .assistant-toolbar-right {
@@ -514,7 +522,7 @@
 }
 .message-body ::ng-deep p {
   margin: 0 0 13px;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.68;
   overflow-wrap: anywhere;
   word-break: break-word;

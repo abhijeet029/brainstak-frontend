@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, Injector, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, finalize, from, map, of, switchMap, tap } from 'rxjs';
+import { catchError, finalize, map, of, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { User } from './models';
 import { EncryptionService } from './encryption.service';
@@ -37,7 +37,7 @@ export class AuthService {
       .post<{ user: User }>(`${this.base}/auth/google`, { idToken })
       .pipe(
         tap((res) => this.user.set(res.user)),
-        switchMap((res) => from(this.encryption.init()).pipe(map(() => res))),
+        tap(() => { void this.encryption.init(); }),
       );
   }
 

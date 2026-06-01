@@ -7,8 +7,10 @@ import {
   HostListener,
   Input,
   NgZone,
+  OnChanges,
   OnDestroy,
   Output,
+  SimpleChanges,
   ViewChild,
   inject,
   signal,
@@ -28,7 +30,7 @@ export type VoiceState = 'idle' | 'listening' | 'transcribing' | 'unsupported';
   templateUrl: './composer.component.html',
   styleUrl: './composer.component.scss',
 })
-export class ComposerComponent implements AfterViewInit, OnDestroy {
+export class ComposerComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly collapsedHeight = 34;
   private readonly http = inject(HttpClient);
   private readonly ngZone = inject(NgZone);
@@ -50,6 +52,7 @@ export class ComposerComponent implements AfterViewInit, OnDestroy {
 
   text = '';
   menuOpen = false;
+  private submitLocked = false;
   readonly expanded = signal(false);
 
   // ── Voice state ─────────────────────────────────────────────────────────────
@@ -83,8 +86,14 @@ export class ComposerComponent implements AfterViewInit, OnDestroy {
     this.resetHeight();
   }
 
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['disabled'] && changes['disabled'].currentValue === false) {
+      this.submitLocked = false;
+    }
+  }
+
   canSend(): boolean {
-    return !this.disabled && this.text.trim().length > 0;
+    return !this.disabled && !this.submitLocked && this.text.trim().length > 0;
   }
 
   setText(t: string) {
@@ -116,6 +125,7 @@ export class ComposerComponent implements AfterViewInit, OnDestroy {
   onSubmit(e: Event) {
     e.preventDefault();
     if (!this.canSend()) return;
+    this.submitLocked = true;
     this.abortVoice();
     const t = this.text.trim();
     this.text = '';

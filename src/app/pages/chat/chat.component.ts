@@ -18,6 +18,7 @@ import { ChatService } from '../../core/chat.service';
 import { ProjectService } from '../../core/project.service';
 import { ToastService } from '../../core/toast.service';
 import { UsageService } from '../../core/usage.service';
+import { EncryptionService } from '../../core/encryption.service';
 import { IntelligenceLevel, IntelligenceOption, ProposedChange } from '../../core/models';
 
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
@@ -59,6 +60,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   private router = inject(Router);
   private toast = inject(ToastService);
   private usage = inject(UsageService);
+  private encryption = inject(EncryptionService);
 
   @ViewChild('scrollArea', { static: false }) scrollArea?: ElementRef<HTMLDivElement>;
   @ViewChild('composer', { static: false }) composer?: ComposerComponent;
@@ -159,6 +161,16 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   private readonly preferredModelStoragePrefix = 'hub:preferred-model:';
 
   ngOnInit() {
+    void this.encryption.init().finally(() => this.loadInitialChatState());
+    this.route.paramMap.subscribe((params) => {
+      const chatId = params.get('chatId');
+      if (!chatId || chatId === this.chatSvc.activeChatId()) return;
+      if (!this.chatSvc.chats().some((chat) => chat.id === chatId)) return;
+      this.openChat(chatId);
+    });
+  }
+
+  private loadInitialChatState() {
     forkJoin({
       projects: this.projects.loadProjects().pipe(catchError(() => of({ projects: [] }))),
       today: this.usage.loadToday().pipe(catchError(() => of(null))),
@@ -188,13 +200,6 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       }
     });
     this.usage.loadWeek().pipe(catchError(() => of(null))).subscribe();
-
-    this.route.paramMap.subscribe((params) => {
-      const chatId = params.get('chatId');
-      if (!chatId || chatId === this.chatSvc.activeChatId()) return;
-      if (!this.chatSvc.chats().some((chat) => chat.id === chatId)) return;
-      this.openChat(chatId);
-    });
   }
 
   ngAfterViewChecked() {

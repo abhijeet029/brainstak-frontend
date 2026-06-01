@@ -129,6 +129,7 @@ export class ChatService {
       return throwError(() => new Error('A message is already being sent'));
     }
     this.sending.set(true);
+    const clientRequestId = makeClientRequestId();
     const visibleMessage = displayMessage ?? message;
     const existingOptimistic = this.messages().find((m) =>
       m.role === 'user' &&
@@ -155,7 +156,7 @@ export class ChatService {
 
     return this.http.post<SendResponse>(
       `${this.base}/chats/${chatId}/messages`,
-      { message, intelligence, ...(displayMessage ? { displayMessage } : {}), ...(model ? { model } : {}) },
+      { message, intelligence, clientRequestId, ...(displayMessage ? { displayMessage } : {}), ...(model ? { model } : {}) },
     ).pipe(
       tap((res) => {
         const assistant: ChatMessage = {
@@ -251,6 +252,7 @@ export class ChatService {
     displayMessage?: string,
   ): Promise<SendResponse> {
     this.sending.set(true);
+    const clientRequestId = makeClientRequestId();
     const visibleMessage = displayMessage ?? message;
     const existingOptimistic = this.messages().find((m) =>
       m.role === 'user' &&
@@ -324,6 +326,7 @@ export class ChatService {
       await this.consumeSse(`${this.base}/chats/${chatId}/messages/stream`, {
         message,
         intelligence,
+        clientRequestId,
         ...(displayMessage ? { displayMessage } : {}),
         ...(model ? { model } : {}),
       }, {
@@ -384,6 +387,7 @@ export class ChatService {
       return throwError(() => new Error('A message is already being sent'));
     }
     this.sending.set(true);
+    const clientRequestId = makeClientRequestId();
     const chatId = 'temporary';
     const history = this.messages()
       .filter((item) => item.role === 'user' || item.role === 'assistant')
@@ -402,7 +406,7 @@ export class ChatService {
 
     return this.http.post<SendResponse>(
       `${this.base}/chats/temporary/messages`,
-      { message, displayMessage, history, intelligence, ...(model ? { model } : {}) },
+      { message, displayMessage, history, intelligence, clientRequestId, ...(model ? { model } : {}) },
     ).pipe(
       tap((res) => {
         const assistant: ChatMessage = {
@@ -728,6 +732,13 @@ function titleCaseStatus(status: string) {
 
 function normalizeMessageContent(value: string) {
   return value.trim().replace(/\s+/g, ' ');
+}
+
+function makeClientRequestId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function dedupeTailMessages(list: ChatMessage[]): ChatMessage[] {

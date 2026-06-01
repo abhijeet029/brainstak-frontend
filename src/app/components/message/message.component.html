@@ -1,4 +1,4 @@
-    <div class="message" [class.user]="isUser()" [class.assistant]="!isUser()">
+    <div class="message" [class.user]="isUser()" [class.assistant]="!isUser()" [class.action-menu-open]="modelMenuOpen() || suggestionMenuOpen()">
       <div class="message-content">
         @if (isUser() && editing()) {
           <form class="edit-box" (submit)="$event.preventDefault(); submitEdit()">
@@ -74,13 +74,21 @@
         }
         @if (isUser()) {
           <div class="message-header">
+            <button
+              type="button"
+              class="message-action-btn"
+              [title]="responseCopied() ? 'Copied' : 'Copy message'"
+              (click)="copyResponse()"
+            >
+              <i class="bi" [class.bi-copy]="!responseCopied()" [class.bi-check2]="responseCopied()"></i>
+            </button>
             <button type="button" class="message-action-btn" title="Edit and resend" (click)="startEdit()">
               <i class="bi bi-pencil"></i>
             </button>
           </div>
         }
         @if (!isStreamingAssistant() && !isGeneratedImageResponse() && llmLabel(); as label) {
-          <div class="assistant-toolbar">
+          <div class="assistant-toolbar" [class.menu-open]="modelMenuOpen() || suggestionMenuOpen()">
             <div class="assistant-toolbar-left">
               <button
                 type="button"

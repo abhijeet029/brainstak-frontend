@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, Output, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ChatMessage, IntelligenceLevel, ProposedChange, UsedContext } from '../../core/models';
 
@@ -101,6 +101,8 @@ type MessageBlock = TextBlock | CodeBlock;
   styleUrl: './message.component.scss',
 })
 export class MessageComponent implements OnChanges {
+  private host = inject(ElementRef<HTMLElement>);
+
   @Input({ required: true }) message!: ChatMessage;
   @Input() feedbackType: 'like' | 'dislike' | null = null;
   @Input() userInitial = 'U';
@@ -139,6 +141,21 @@ export class MessageComponent implements OnChanges {
   readonly showFullResponse = signal(false);
   editDraft = '';
   private lastMessageId: string | null = null;
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    if (!this.modelMenuOpen() && !this.suggestionMenuOpen()) return;
+    const target = event.target;
+    if (target instanceof Node && this.host.nativeElement.contains(target)) return;
+    this.modelMenuOpen.set(false);
+    this.suggestionMenuOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  onDocumentEscape() {
+    this.modelMenuOpen.set(false);
+    this.suggestionMenuOpen.set(false);
+  }
 
   /** Per-file status: key = path, value = status. */
   readonly fileStatus = signal<Record<string, FileChangeStatus>>({});
@@ -741,6 +758,14 @@ function formatInlineMarkdown(text: string): string {
         return `<code class="inline-code">${label}</code>`;
       }
       return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+    },
+  );
+
+  output = output.replace(
+    /(^|[\s(])((?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be|instagram\.com|facebook\.com|linkedin\.com|x\.com|twitter\.com|amazon\.in|flipkart\.com|goodreads\.com)\/[^\s<)]+)/gi,
+    (_match: string, prefix: string, rawUrl: string) => {
+      const href = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+      return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer">${rawUrl}</a>`;
     },
   );
 
