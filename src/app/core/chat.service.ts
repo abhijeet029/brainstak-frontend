@@ -35,6 +35,7 @@ export class ChatService {
   readonly tokenMeta = signal<Record<string, string>>({});
   /** Intelligence level used by each assistant reply, keyed by message id. */
   readonly replyIntelligence = signal<Record<string, IntelligenceLevel>>({});
+  private activeSendKey: string | null = null;
 
   /**
    * Load the chat list, optionally scoped to a specific project context.
@@ -125,12 +126,14 @@ export class ChatService {
   }
 
   send(chatId: string, message: string, intelligence: IntelligenceLevel = 'low', model?: string, displayMessage?: string) {
-    if (this.sending()) {
+    const visibleMessage = displayMessage ?? message;
+    const adoptingPendingSend = this.canAdoptPendingSend(visibleMessage);
+    if (this.sending() && !adoptingPendingSend) {
       return throwError(() => new Error('A message is already being sent'));
     }
     this.sending.set(true);
+    this.activeSendKey = `${chatId}:${visibleMessage}`;
     const clientRequestId = makeClientRequestId();
-    const visibleMessage = displayMessage ?? message;
     const existingOptimistic = this.messages().find((m) =>
       m.role === 'user' &&
       m.id.startsWith('tmp-user-pending-') &&
@@ -240,8 +243,15 @@ export class ChatService {
           [res.reply.id]: res.routing.intelligence,
         }));
       }),
-      finalize(() => this.sending.set(false)),
+      finalize(() => {
+        this.activeSendKey = null;
+        this.sending.set(false);
+      }),
     );
+  }
+
+  canStartSendFor(visibleMessage: string): boolean {
+    return !this.sending() || this.canAdoptPendingSend(visibleMessage);
   }
 
   async sendStream(
@@ -251,9 +261,14 @@ export class ChatService {
     model?: string,
     displayMessage?: string,
   ): Promise<SendResponse> {
-    this.sending.set(true);
-    const clientRequestId = makeClientRequestId();
     const visibleMessage = displayMessage ?? message;
+    const adoptingPendingSend = this.canAdoptPendingSend(visibleMessage);
+    if (this.sending() && !adoptingPendingSend) {
+      throw new Error('A message is already being sent');
+    }
+    this.sending.set(true);
+    this.activeSendKey = `${chatId}:${visibleMessage}`;
+    const clientRequestId = makeClientRequestId();
     const existingOptimistic = this.messages().find((m) =>
       m.role === 'user' &&
       m.id.startsWith('tmp-user-pending-') &&
@@ -357,8 +372,18 @@ export class ChatService {
     } finally {
       flushDelta();
       this.streamStatus.set(null);
+      this.activeSendKey = null;
       this.sending.set(false);
     }
+  }
+
+  private canAdoptPendingSend(visibleMessage: string): boolean {
+    if (this.activeSendKey) return false;
+    return this.messages().some((m) =>
+      m.role === 'user' &&
+      m.id.startsWith('tmp-user-pending-') &&
+      m.content === visibleMessage,
+    );
   }
 
   private async smoothAppendAssistantTail(tempAssistantId: string, finalContent: string): Promise<void> {
@@ -387,6 +412,7 @@ export class ChatService {
       return throwError(() => new Error('A message is already being sent'));
     }
     this.sending.set(true);
+    this.activeSendKey = `temporary:${displayMessage}`;
     const clientRequestId = makeClientRequestId();
     const chatId = 'temporary';
     const history = this.messages()
@@ -443,7 +469,10 @@ export class ChatService {
           [res.reply.id]: res.routing.intelligence,
         }));
       }),
-      finalize(() => this.sending.set(false)),
+      finalize(() => {
+        this.activeSendKey = null;
+        this.sending.set(false);
+      }),
     );
   }
 

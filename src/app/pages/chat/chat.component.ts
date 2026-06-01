@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { catchError, forkJoin, of, Subscription } from 'rxjs';
+import { catchError, finalize, forkJoin, of, Subscription } from 'rxjs';
 
 import { AuthService } from '../../core/auth.service';
 import { ChatService } from '../../core/chat.service';
@@ -155,6 +155,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     return options;
   });
   private shouldScrollToBottom = false;
+  private sendLocked = false;
   private resumePollTimer: ReturnType<typeof setTimeout> | null = null;
   private resumePollSub: Subscription | null = null;
   private resumePollAttempts = 0;
@@ -315,7 +316,8 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   onSend(text: string) {
-    if (this.chatSvc.sending()) return;
+    if (this.sendLocked || this.chatSvc.sending()) return;
+    this.sendLocked = true;
     const pinnedModel = this.preferredModel()?.model;
     if (this.chatSvc.temporaryMode()) {
       this.sendTemporary(text, pinnedModel);
@@ -324,13 +326,18 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     let chatId = this.chatSvc.activeChatId();
     if (!chatId) {
       this.chatSvc.beginPendingSend(text);
-      this.chatSvc.createChat(this.projects.activeProjectId(), text.slice(0, 60), true).subscribe({
+      this.chatSvc.createChat(this.projects.activeProjectId(), text.slice(0, 60), true).pipe(
+        finalize(() => {
+          if (this.chatSvc.activeChatId() === 'pending') this.sendLocked = false;
+        }),
+      ).subscribe({
         next: ({ chat }) => {
           void this.router.navigate(['/chat', chat.id]);
           this.sendToChat(chat.id, text, pinnedModel);
         },
         error: (e) => {
           this.chatSvc.cancelPendingSend();
+          this.sendLocked = false;
           this.toast.show(e?.error?.message ?? e?.error?.error ?? 'Could not create chat', 'error');
         },
       });
@@ -340,8 +347,14 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   private startProjectDraftChat(projectId: string, text: string) {
+    if (this.sendLocked || this.chatSvc.sending()) return;
+    this.sendLocked = true;
     this.chatSvc.beginPendingSend(text);
-    this.chatSvc.createChat(projectId, text.slice(0, 60), true).subscribe({
+    this.chatSvc.createChat(projectId, text.slice(0, 60), true).pipe(
+      finalize(() => {
+        if (this.chatSvc.activeChatId() === 'pending') this.sendLocked = false;
+      }),
+    ).subscribe({
       next: ({ chat }) => {
         if (this.sidebar && !this.sidebar.isProjectExpanded(projectId)) {
           this.sidebar.toggleProjectExpand(projectId);
@@ -352,6 +365,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       error: (e) => {
         this.chatSvc.cancelPendingSend();
         this.projectDraftText.set(text);
+        this.sendLocked = false;
         this.toast.show(e?.error?.error ?? 'Could not create project chat', 'error');
       },
     });
@@ -659,6 +673,10 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   private sendToChat(chatId: string, text: string, model?: string, intelligence = this.selectedIntelligence(), displayText?: string) {
+    if (!this.chatSvc.canStartSendFor(displayText ?? text)) {
+      this.sendLocked = false;
+      return;
+    }
     this.clearResumePolling();
     this.chatSvc.sendStream(chatId, text, intelligence, model, displayText)
       .then((res) => {
@@ -677,6 +695,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       .catch((e) => {
         this.activeModelCheck.set(null);
         this.toast.show(e?.error?.message ?? e?.error?.error ?? e?.message ?? 'Send failed', 'error');
+      })
+      .finally(() => {
+        this.sendLocked = false;
       });
     this.shouldScrollToBottom = true;
   }
@@ -699,7 +720,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       },
       error: (e) => {
         this.activeModelCheck.set(null);
+        this.sendLocked = false;
         this.toast.show(e?.error?.message ?? e?.error?.error ?? 'Temporary send failed', 'error');
+      },
+      complete: () => {
+        this.sendLocked = false;
       },
     });
     this.shouldScrollToBottom = true;
