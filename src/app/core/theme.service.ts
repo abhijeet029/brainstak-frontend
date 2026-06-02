@@ -9,11 +9,11 @@ const STORAGE_KEY = 'hub-theme';
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
 
-  readonly theme = signal<ThemeMode>('dark');
+  readonly theme = signal<ThemeMode>('light');
 
   constructor() {
     const stored = this.readStoredTheme();
-    this.applyTheme(stored ?? 'dark');
+    this.applyTheme(stored ?? 'light');
   }
 
   toggleTheme() {

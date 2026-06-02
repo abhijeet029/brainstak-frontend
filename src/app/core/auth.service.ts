@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, Injector, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, finalize, map, of, tap } from 'rxjs';
+import { catchError, finalize, from, map, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { User } from './models';
 import { EncryptionService } from './encryption.service';
@@ -23,7 +23,8 @@ export class AuthService {
   bootstrap() {
     return this.http.get<{ user: User }>(`${this.base}/auth/me`).pipe(
       tap((res) => this.user.set(res?.user ?? null)),
-      tap(() => { void this.encryption.init(); }),
+      switchMap(() => from(this.encryption.init())),
+      map(() => ({ user: this.user()! })),
       catchError(() => {
         this.user.set(null);
         return of(null);
@@ -37,7 +38,7 @@ export class AuthService {
       .post<{ user: User }>(`${this.base}/auth/google`, { idToken })
       .pipe(
         tap((res) => this.user.set(res.user)),
-        tap(() => { void this.encryption.init(); }),
+        switchMap((res) => from(this.encryption.init()).pipe(map(() => res))),
       );
   }
 
@@ -84,7 +85,7 @@ export class AuthService {
     if (this.user()) return of(true);
     return this.http.get<{ user: User }>(`${this.base}/auth/me`).pipe(
       tap((res) => this.user.set(res.user)),
-      tap(() => { void this.encryption.init(); }),
+      switchMap(() => from(this.encryption.init())),
       map(() => true),
       catchError(() => of(false)),
     );

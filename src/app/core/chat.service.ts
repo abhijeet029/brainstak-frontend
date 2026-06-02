@@ -233,10 +233,7 @@ export class ChatService {
             [res.reply.id]: `Requested ${capitalize(downgrade.requested)}, used ${capitalize(downgrade.used)}. ${downgrade.reason}`,
           }));
         }
-        this.tokenMeta.update((current) => ({
-          ...current,
-          [res.reply.id]: buildTokenMeta(res),
-        }));
+        this.tokenMeta.update((current) => mergeTokenMeta(current, res));
         this.replyIntelligence.update((current) => ({
           ...current,
           [res.reply.id]: res.routing.intelligence,
@@ -461,10 +458,7 @@ export class ChatService {
             [res.reply.id]: `Requested ${capitalize(downgrade.requested)}, used ${capitalize(downgrade.used)}. ${downgrade.reason}`,
           }));
         }
-        this.tokenMeta.update((current) => ({
-          ...current,
-          [res.reply.id]: buildTokenMeta(res),
-        }));
+        this.tokenMeta.update((current) => mergeTokenMeta(current, res));
         this.replyIntelligence.update((current) => ({
           ...current,
           [res.reply.id]: res.routing.intelligence,
@@ -577,10 +571,7 @@ export class ChatService {
         [res.reply.id]: `Requested ${capitalize(downgrade.requested)}, used ${capitalize(downgrade.used)}. ${downgrade.reason}`,
       }));
     }
-    this.tokenMeta.update((current) => ({
-      ...current,
-      [res.reply.id]: buildTokenMeta(res),
-    }));
+    this.tokenMeta.update((current) => mergeTokenMeta(current, res));
     this.replyIntelligence.update((current) => ({
       ...current,
       [res.reply.id]: res.routing.intelligence,
@@ -743,6 +734,7 @@ function capitalize(value: string) {
 }
 
 function buildTokenMeta(res: SendResponse) {
+  if (res.usage.tokens <= 0) return null;
   const parts = [
     `Used ${res.usage.tokens.toLocaleString()} tokens`,
     // `Prompt ${res.usage.promptTokens.toLocaleString()}`,
@@ -751,6 +743,17 @@ function buildTokenMeta(res: SendResponse) {
   ];
   if (res.usedContext?.length) parts.push('project context used');
   return parts.join(' · ');
+}
+
+function mergeTokenMeta(current: Record<string, string>, res: SendResponse): Record<string, string> {
+  const meta = buildTokenMeta(res);
+  const next = { ...current };
+  if (meta) {
+    next[res.reply.id] = meta;
+  } else {
+    delete next[res.reply.id];
+  }
+  return next;
 }
 
 function titleCaseStatus(status: string) {

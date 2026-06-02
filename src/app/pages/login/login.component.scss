@@ -201,6 +201,12 @@
   transition: transform 0.25s ease;
 }
 
+.g-btn-wrap:not(.ready) {
+  min-height: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 .g-btn-wrap:hover {
   transform: translateY(-1px);
 }
@@ -213,6 +219,104 @@
 
 .g-btn-wrap iframe {
   transform: scale(1.05);
+}
+
+.google-fallback-btn {
+  width: min(100%, 460px);
+  min-height: 52px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-surface) 96%, white 4%);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  appearance: none;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.google-fallback-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+}
+
+.google-fallback-btn:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.google-icon {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.google-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.google-loading-placeholder {
+  width: min(100%, 460px);
+  min-height: 52px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-surface) 96%, white 4%);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.google-loading-placeholder span,
+.google-loading-placeholder strong {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--border) 55%, transparent),
+    color-mix(in srgb, var(--bg-surface) 85%, white 15%),
+    color-mix(in srgb, var(--border) 55%, transparent)
+  );
+  background-size: 220% 100%;
+  animation: google-placeholder 1.1s ease-in-out infinite;
+}
+
+.google-loading-placeholder span {
+  width: 22px;
+  height: 22px;
+}
+
+.google-loading-placeholder strong {
+  width: 170px;
+  height: 18px;
+}
+
+@keyframes google-placeholder {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .err {
@@ -323,6 +427,10 @@
     min-height: 60px;
   }
 
+  .g-btn-wrap:not(.ready) {
+    min-height: 0;
+  }
+
   .secure-note {
     margin-top: 18px;
     font-size: 13px;
@@ -364,15 +472,4 @@
   .login-content p {
     font-size: 14px;
   }
-}
-/* Set the Google button container height */
-.g-btn-wrap {
-  height: 44px;
-}
-
-/* Ensure the inner button also matches the height */
-.g-btn-wrap > .gsi-material-button {
-  height: 100%;
-  min-height: 44px;
-  align-items: center;
 }
