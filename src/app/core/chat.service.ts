@@ -364,7 +364,6 @@ export class ChatService {
 
       const finalResponse = doneResponse as SendResponse | null;
       if (!finalResponse) throw new Error('Stream ended before completion');
-      await this.smoothAppendAssistantTail(tempAssistantId, finalResponse.reply.content);
       this.applySendResponse(chatId, message, optimisticId, finalResponse, tempAssistantId);
       return finalResponse;
     } finally {
@@ -382,27 +381,6 @@ export class ChatService {
       m.id.startsWith('tmp-user-pending-') &&
       m.content === visibleMessage,
     );
-  }
-
-  private async smoothAppendAssistantTail(tempAssistantId: string, finalContent: string): Promise<void> {
-    const current = this.messages().find((m) => m.id === tempAssistantId);
-    if (!current) return;
-    const currentContent = current.content ?? '';
-    if (!finalContent || finalContent.length <= currentContent.length) return;
-    if (!finalContent.startsWith(currentContent)) return;
-
-    const tail = finalContent.slice(currentContent.length);
-    if (!tail) return;
-
-    // Append in small chunks to avoid the "final dump" feel at stream end.
-    const chunkSize = 24;
-    for (let i = 0; i < tail.length; i += chunkSize) {
-      const piece = tail.slice(i, i + chunkSize);
-      this.messages.set(this.messages().map((m) =>
-        m.id === tempAssistantId ? { ...m, content: m.content + piece } : m,
-      ));
-      await new Promise((resolve) => setTimeout(resolve, 14));
-    }
   }
 
   sendTemporary(displayMessage: string, intelligence: IntelligenceLevel = 'low', model?: string, message = displayMessage) {
@@ -481,11 +459,7 @@ export class ChatService {
     const existingTempAssistant = tempAssistantId
       ? this.messages().find((m) => m.id === tempAssistantId)
       : null;
-    const mergedAssistantContent = existingTempAssistant?.content?.trim().length
-      ? (res.reply.content.length >= existingTempAssistant.content.length
-          ? res.reply.content
-          : existingTempAssistant.content)
-      : res.reply.content;
+    const mergedAssistantContent = collapseRepeatedAnswer(res.reply.content);
     const assistant: ChatMessage = {
       id: res.reply.id,
       clientKey: existingTempAssistant?.clientKey ?? tempAssistantId ?? res.reply.id,
@@ -754,6 +728,22 @@ function mergeTokenMeta(current: Record<string, string>, res: SendResponse): Rec
     delete next[res.reply.id];
   }
   return next;
+}
+
+function collapseRepeatedAnswer(content: string): string {
+  const normalized = content.trim();
+  if (!normalized) return content;
+
+  const lines = normalized.split('\n');
+  const nonEmpty = lines.map((line) => line.trim()).filter(Boolean);
+  if (nonEmpty.length < 4 || nonEmpty.length % 2 !== 0) return content;
+
+  const midpoint = nonEmpty.length / 2;
+  const first = nonEmpty.slice(0, midpoint).join('\n');
+  const second = nonEmpty.slice(midpoint).join('\n');
+  if (first === second) return first;
+
+  return content;
 }
 
 function titleCaseStatus(status: string) {
