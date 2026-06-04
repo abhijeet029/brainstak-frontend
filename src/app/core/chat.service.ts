@@ -91,13 +91,19 @@ export class ChatService {
             .filter((m) => m.role === 'user')
             .map((m) => normalizeMessageContent(m.content)),
         );
-        this.messages.set([
+        const savedAssistantContent = new Set(
+          res.messages
+            .filter((m) => m.role === 'assistant')
+            .map((m) => normalizeMessageContent(m.content)),
+        );
+        this.messages.set(dedupeTailMessages([
           ...res.messages,
           ...pending.filter((m) =>
             !savedIds.has(m.id) &&
-            (m.role !== 'user' || !savedUserContent.has(normalizeMessageContent(m.content))),
+            (m.role !== 'user' || !savedUserContent.has(normalizeMessageContent(m.content))) &&
+            (m.role !== 'assistant' || !savedAssistantContent.has(normalizeMessageContent(m.content))),
           ),
-        ]);
+        ]));
       }));
   }
 
@@ -365,9 +371,82 @@ export class ChatService {
       const finalResponse = doneResponse as SendResponse | null;
       if (!finalResponse) throw new Error('Stream ended before completion');
       this.applySendResponse(chatId, message, optimisticId, finalResponse, tempAssistantId);
+      this.removeStaleTemporaryAssistants(chatId, finalResponse.reply.content, tempAssistantId);
       return finalResponse;
     } finally {
       flushDelta();
+      this.streamStatus.set(null);
+      this.activeSendKey = null;
+      this.sending.set(false);
+    }
+  }
+
+  async regenerateStream(
+    chatId: string,
+    assistantMessageId: string,
+    intelligence: IntelligenceLevel = 'low',
+    model?: string,
+  ): Promise<SendResponse> {
+    if (this.sending()) throw new Error('A message is already being sent');
+    this.sending.set(true);
+    this.activeSendKey = `${chatId}:regenerate:${assistantMessageId}`;
+    const tempAssistantId = 'tmp-assistant-' + Date.now();
+    let assistantStarted = false;
+    let doneResponse: SendResponse | null = null;
+
+    try {
+      this.streamStatus.set('Thinking');
+      await this.consumeSse(`${this.base}/chats/${chatId}/messages/${assistantMessageId}/regenerate/stream`, {
+        intelligence,
+        ...(model ? { model } : {}),
+      }, {
+        status: (payload) => {
+          const status = typeof payload?.status === 'string' ? payload.status : '';
+          this.streamStatus.set(status ? titleCaseStatus(status) : null);
+        },
+        delta: (payload) => {
+          const delta = typeof payload?.delta === 'string' ? payload.delta : '';
+          if (!delta) return;
+          if (!assistantStarted) {
+            assistantStarted = true;
+            this.messages.set([...this.messages(), {
+              id: tempAssistantId,
+              clientKey: tempAssistantId,
+              chatId,
+              role: 'assistant',
+              content: delta,
+              model: model ?? null,
+              tokensIn: null,
+              tokensOut: null,
+              createdAt: new Date().toISOString(),
+            }]);
+            return;
+          }
+          this.messages.set(this.messages().map((message) =>
+            message.id === tempAssistantId ? { ...message, content: message.content + delta } : message,
+          ));
+        },
+        done: (payload) => {
+          doneResponse = payload as SendResponse;
+        },
+        error: (payload) => {
+          const error = new Error(payload?.error ?? 'Regeneration failed') as Error & { code?: string };
+          if (typeof payload?.code === 'string') error.code = payload.code;
+          throw error;
+        },
+      });
+
+      const result = doneResponse as SendResponse | null;
+      if (!result) throw new Error('Regeneration ended before completion');
+      const replaced = new Set(result.replacedMessageIds ?? []);
+      this.messages.set(this.messages().filter((message) => !replaced.has(message.id)));
+      this.applySendResponse(chatId, result.userMessage?.content ?? '', assistantMessageId, result, tempAssistantId);
+      this.removeStaleTemporaryAssistants(chatId, result.reply.content, tempAssistantId);
+      return result;
+    } catch (error) {
+      this.messages.set(this.messages().filter((message) => message.id !== tempAssistantId));
+      throw error;
+    } finally {
       this.streamStatus.set(null);
       this.activeSendKey = null;
       this.sending.set(false);
@@ -381,6 +460,16 @@ export class ChatService {
       m.id.startsWith('tmp-user-pending-') &&
       m.content === visibleMessage,
     );
+  }
+
+  private removeStaleTemporaryAssistants(chatId: string, persistedContent: string, expectedTempId: string) {
+    const normalizedPersisted = normalizeMessageContent(persistedContent);
+    this.messages.set(this.messages().filter((message) => {
+      if (message.chatId !== chatId || message.role !== 'assistant' || !message.id.startsWith('tmp-assistant-')) {
+        return true;
+      }
+      return message.id !== expectedTempId && normalizeMessageContent(message.content) !== normalizedPersisted;
+    }));
   }
 
   sendTemporary(displayMessage: string, intelligence: IntelligenceLevel = 'low', model?: string, message = displayMessage) {

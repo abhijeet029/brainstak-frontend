@@ -132,6 +132,8 @@ export interface SendResponse {
   usedContext?: UsedContext[];
   /** Proposed file changes parsed out of the model's reply (project mode). Read-only. */
   proposedChanges?: ProposedChange[];
+  /** Existing branch messages replaced after a successful regeneration. */
+  replacedMessageIds?: string[];
 }
 
 export type ModelPriorityTier = 'cheap' | 'mid' | 'premium';

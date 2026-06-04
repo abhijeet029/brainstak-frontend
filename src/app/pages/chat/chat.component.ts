@@ -107,6 +107,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
   });
   readonly selectedIntelligence = signal<IntelligenceLevel>('low');
   readonly activeModelCheck = signal<{ assistantMessageId: string; model: string; modelLabel: string } | null>(null);
+  readonly regeneratingMessageId = signal<string | null>(null);
   /** Model the user pinned after a check — applied to all subsequent sends in this chat. */
   readonly preferredModel = signal<{ model: string; modelLabel: string } | null>(null);
   /** Maps assistant message ID → the model that produced that check response. */
@@ -499,15 +500,25 @@ export class ChatComponent implements OnInit, AfterViewChecked {
       return;
     }
 
-    this.chatSvc.truncateFromMessage(chatId, previousUser.id).subscribe({
-      next: () => {
-        if (isModelCheckMessage(previousUser.content) && event.model && event.modelLabel) {
-          this.activeModelCheck.set({ assistantMessageId: event.assistantMessageId, model: event.model, modelLabel: event.modelLabel });
-        }
-        this.sendToChat(chatId, previousUser.content, event.model ?? undefined, event.intelligence);
-      },
-      error: (e) => this.toast.show(e?.error?.error ?? 'Could not regenerate response', 'error'),
-    });
+    if (isModelCheckMessage(previousUser.content) && event.model && event.modelLabel) {
+      this.activeModelCheck.set({ assistantMessageId: event.assistantMessageId, model: event.model, modelLabel: event.modelLabel });
+    }
+    this.regeneratingMessageId.set(event.assistantMessageId);
+    this.chatSvc.regenerateStream(chatId, event.assistantMessageId, event.intelligence, event.model ?? undefined)
+      .then((res) => {
+        this.activeModelCheck.set(null);
+        this.usage.applyAfterSend(res.usage.remainingTodayTokens, res.usage.tokens);
+        this.usage.loadToday().pipe(catchError(() => of(null))).subscribe();
+        this.chatSvc.loadChats().pipe(catchError(() => of({ chats: [] }))).subscribe();
+        this.shouldScrollToBottom = true;
+      })
+      .catch((e) => {
+        this.activeModelCheck.set(null);
+        this.toast.show(e?.error?.message ?? e?.error?.error ?? e?.message ?? 'Could not regenerate response', 'error');
+      })
+      .finally(() => {
+        this.regeneratingMessageId.set(null);
+      });
   }
 
   onCheckModel(event: { assistantMessageId: string; model: string; modelLabel: string; intelligence: IntelligenceLevel }) {

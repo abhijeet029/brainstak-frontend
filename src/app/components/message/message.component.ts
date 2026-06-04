@@ -111,6 +111,7 @@ export class MessageComponent implements OnChanges {
   @Input() tokenMeta: string | null = null;
   @Input() replyIntelligence: IntelligenceLevel | null = null;
   @Input() checkingModel: string | null = null;
+  @Input() regenerating = false;
   /** Set when this message is a model-check response; shows the "Prefer" chip. */
   @Input() preferChip: { model: string; modelLabel: string } | null = null;
   /** Project files (RAG slices) that grounded this assistant reply, if any. */

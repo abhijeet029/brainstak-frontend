@@ -25,13 +25,14 @@ export class UsageService {
   }
 
   /** Apply a fresh remaining/used count after sending a message. */
-  applyAfterSend(remainingTokens: number, usedTokensDelta?: number) {
+  applyAfterSend(remainingTokens: number, _usedTokensDelta?: number) {
     const t = this.today();
     if (!t) return;
-    const usedFromRemaining = Math.max(0, t.cap - remainingTokens);
-    const used = typeof usedTokensDelta === 'number'
-      ? Math.max(0, t.tokens + Math.max(0, usedTokensDelta))
-      : usedFromRemaining;
+    // The backend returns remaining tokens after reservation has been reconciled
+    // against actual provider usage. Treat it as authoritative instead of adding
+    // a local delta, which can double-count after retries, regeneration, or stale
+    // usage state and then appear to "reduce" on page refresh.
+    const used = Math.max(0, t.cap - remainingTokens);
     this.today.set({
       ...t,
       tokens: used,

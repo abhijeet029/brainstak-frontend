@@ -143,6 +143,7 @@
                   [feedbackType]="m.feedbackType ?? null"
                   [replyIntelligence]="chatSvc.getReplyIntelligence(m.id)"
                   [checkingModel]="checkingModelFor(m.id)"
+                  [regenerating]="regeneratingMessageId() === m.id"
                   [preferChip]="checkResponseModelFor(m.id)"
                   [usedContext]="chatSvc.getUsedContext(m.id)"
                   [proposedChanges]="chatSvc.getProposedChanges(m.id)"

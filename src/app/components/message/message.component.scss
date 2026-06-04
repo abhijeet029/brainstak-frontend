@@ -414,6 +414,21 @@
   line-height: 1.25;
   opacity: 0.88;
 }
+
+.assistant-icon-btn.regenerating {
+  cursor: wait;
+  opacity: 0.8;
+}
+
+.regenerate-spin {
+  animation: regenerate-spin 0.8s linear infinite;
+}
+
+@keyframes regenerate-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .llm-meta strong {
   font-weight: 700;
 }
